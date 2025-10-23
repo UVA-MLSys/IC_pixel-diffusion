@@ -8,12 +8,13 @@ the **initial condition density fields (z = 127)** and the **halo density fields
 
 The **initial condition (z = 127)** density fields are generated using the **Latin Hypercube simulation snapshots**
 from Quijote. The corresponding generation script is provided here:
-[Initial Condition Generation Code](<https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_halo_redshift_mass.py>).
+[Initial Condition Generation Code](<https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z127_density.py>).
 
 The **halo density fields (z = 0)** are constructed from the **halo catalogs** produced by the
 **Friends-of-Friends (FoF)** algorithm applied to the Quijote N-body simulations.
 The processing script used for this step is provided here:
-[Halo Field Generation Code](<link-to-your-code>).
+[Halo Field Generation Code](<https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_halo_redshift_mass.py>).
+
 
 After generating the individual samples for both redshifts (z = 127 and z = 0),
 the **stacking script** in the `dataset/` folder is used to combine all simulation IDs
