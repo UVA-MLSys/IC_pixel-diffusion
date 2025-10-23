@@ -38,7 +38,7 @@ The **complete dataset** (2000 generated samples for each redshift) is available
 
 
 <details>
-<summary><b> Model Training</b></summary>
+<summary><b> 2. Model Training</b></summary>
 
 The stacked datasets of both redshifts (**z = 0** halo fields and **z = 127** initial condition fields)
 are fed into the conditional diffusion model to begin training.  
@@ -53,4 +53,30 @@ can be modified in the corresponding [config file](https://github.com/UVA-MLSys/
 
 </details>
 
+
+<details>
+<summary><b>3. Sampling and Evaluation</b></summary>
+
+After training, the model enters the **sampling phase**, where it generates reconstructed
+initial conditions from unseen test data. During sampling, the model receives the **observed z = 0 halo field**
+as input and progressively denoises it to reconstruct the corresponding **z = 127 initial condition field**.
+
+The sampling process is handled by the following script:
+[`scripts/sample.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/sample.py)
+
+The **number of generated samples** can be adjusted as a hyperparameter in the configuration file, allowing flexibility in testing on different dataset sizes.
+
+Once the samples are generated, they are combined into a single file using the stacking script:
+[`scripts/combine_samples.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Combine_sample.py)
+
+This combined sample file is then used to evaluate the model’s reconstruction performance.
+The evaluation is performed using:
+[`scripts/result.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/results.py)
+
+The evaluation script computes three key metrics to assess reconstruction quality:
+- **Power Spectrum** — measures the statistical similarity of large-scale modes.  
+- **Cross-Correlation Coefficient** — quantifies the correlation between predicted and true fields.  
+- **Transfer Function** — evaluates the scale-dependent amplitude accuracy.
+
+</details>
 
