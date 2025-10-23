@@ -66,16 +66,16 @@ initial conditions from unseen test data. During sampling, the model receives th
 as input and progressively denoises it to reconstruct the corresponding **z = 127 initial condition field**.
 
 The sampling process is handled by the following script:
-[`scripts/sample.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/sample.py)
+[`sample.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/sample.py)
 
 The **number of generated samples** can be adjusted as a hyperparameter in the configuration file, allowing flexibility in testing on different dataset sizes.
 
 Once the samples are generated, they are combined into a single file using the stacking script:
-[`scripts/combine_samples.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Combine_sample.py)
+[`combine_samples.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Combine_sample.py)
 
 This combined sample file is then used to evaluate the model’s reconstruction performance.
 The evaluation is performed using:
-[`scripts/result.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/results.py)
+[`result.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/results.py)
 
 The evaluation script computes three key metrics to assess reconstruction quality:
 - **Power Spectrum** — measures the statistical similarity of large-scale modes.  
