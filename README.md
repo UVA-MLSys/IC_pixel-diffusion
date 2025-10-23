@@ -82,5 +82,15 @@ The evaluation script computes three key metrics to assess reconstruction qualit
 - **Cross-Correlation Coefficient** — quantifies the correlation between predicted and true fields.  
 - **Transfer Function** — evaluates the scale-dependent amplitude accuracy.
 
+
+The figure below shows the evaluation results for the model trained on **1900 samples** and
+**conditioned on the halo density field**.  
+It presents the three key metrics—**Power Spectrum**, **Cross-Correlation Coefficient**, and
+**Transfer Function**—used to assess the reconstruction performance of the model.
+
+![evaluation](plots/input-target.png)
+
+
+
 </details>
 
