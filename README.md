@@ -20,5 +20,19 @@ After generating the individual samples for both redshifts (z = 127 and z = 0),
 the **stacking script** in the `dataset/` folder is used to combine all simulation IDs
 into two single large `.npy` arrays for training.
 
+
+For demonstration purposes, two small **stacked dataset samples** are included in the `Dataset/` folder:
+
+- `quijote128_halo_train_3.npy` — stacked sample of the **z = 0** halo density fields (3 simulations)  
+- `quijote128_z127_train_3.npy` — stacked sample of the **z = 127** initial condition fields (3 simulations)
+
+These example files allow users to verify the dataset format and test the training and sampling scripts without downloading the full dataset.
+
+The **complete dataset** (2000 generated samples for each redshift) is available for download from Google Drive:
+
+- [Full z = 0 dataset (Train_z0_2000.npy)](<add-your-google-drive-link-here>)  
+- [Full z = 127 dataset (Train_z127_2000.npy)](<add-your-google-drive-link-here>)
+
+
 </details>
 
