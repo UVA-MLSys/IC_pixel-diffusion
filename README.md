@@ -88,7 +88,7 @@ The figure below shows the evaluation results for the model trained on **1900 sa
 It presents the three key metrics—**Power Spectrum**, **Cross-Correlation Coefficient**, and
 **Transfer Function**—used to assess the reconstruction performance of the model.
 
-![evaluation](plots/input-target.png)
+![evaluation](plots/evaluation_plots.png)
 
 
 
