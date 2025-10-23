@@ -4,8 +4,6 @@ This model reproduces the main architecture from the **"Posterior Sampling of th
 ![halo_slice_z0](plots/input-target.png)
 
 
-
-
 <details>
 <summary><b> 1. Dataset Preparation</b></summary>
 
@@ -36,8 +34,8 @@ These example files allow users to verify the dataset format and test the traini
 
 The **complete dataset** (2000 generated samples for each redshift) is available for download from Google Drive:
 
-- [Full z = 0 dataset (Train_z0_2000.npy)](<add-your-google-drive-link-here>)  
-- [Full z = 127 dataset (Train_z127_2000.npy)](<add-your-google-drive-link-here>)
+- [Full z = 0 dataset (Train_z0_2000.npy)](https://drive.google.com/drive/folders/1q6G-_9AL3xSll_kI4hf-qtSbotvebPuy?usp=drive_link)  
+- [Full z = 127 dataset (Train_z127_2000.npy)](https://drive.google.com/drive/folders/1BO2AznTSw_31z-AjEa_gmPvNS8frHMcL?usp=drive_link)
 
 
 </details>
