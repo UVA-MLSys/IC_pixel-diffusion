@@ -1,7 +1,12 @@
 # IC_pixel-diffusion: Pixel-based diffusion model for reconstructing cosmological initial conditions from Dark Matter Halos. 
 This model reproduces the main architecture from the **"Posterior Sampling of the Initial Conditions of the Universe from Non-Linear Large Scale Structures Using Score-Based Generative Models"** ([arXiv:2304.03788](https://arxiv.org/abs/2304.03788)) and optimizes it for a new observation dataset. I trained it on **Quijote Latin Hypercube simulation dataset** to reconstruct the initial condition (z = 127) from DM halo (z=0).
 
-![halo_slice_z0](plots/input-target.png)
+<p align="center">
+  <img src="plots/input-target.png"
+       alt="Evaluation metrics"
+       width="580">
+</p>
+
 
 
 <details>
@@ -91,10 +96,8 @@ It presents the three key metrics—**Power Spectrum**, **Cross-Correlation Coef
 <p align="center">
   <img src="plots/eval_plot.png"
        alt="Evaluation metrics"
-       width="480">
+       width="380">
 </p>
-
-
 
 
 </details>
