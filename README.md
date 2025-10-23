@@ -36,3 +36,21 @@ The **complete dataset** (2000 generated samples for each redshift) is available
 
 </details>
 
+
+<details>
+<summary><b> Model Training</b></summary>
+
+The stacked datasets of both redshifts (**z = 0** halo fields and **z = 127** initial condition fields)
+are fed into the conditional diffusion model to begin training.  
+A total of **1900 samples** are used for training for each redshift. 
+The corresponding training script is provided here: [train code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/train.py)
+Training is performed on **4 NVIDIA A100 GPUs** available on the **UVA Rivanna** supercomputing cluster,
+using a **batch size of 4 per GPU** (effective total batch size of 16) for **400 epochs**.  
+The complete training process takes approximately **17 hours**.
+
+All key hyperparameters, such as the number of epochs, batch size, learning rate, and model configuration,
+can be modified in the corresponding [config file](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/config.json) to suit different datasets or experiments.
+
+</details>
+
+
