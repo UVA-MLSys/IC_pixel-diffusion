@@ -90,7 +90,7 @@ The evaluation script computes three key metrics to assess reconstruction qualit
 
 The figure below shows the evaluation results for the model trained on **1900 samples** and
 **conditioned on the halo density field**.  
-It presents the three key metrics—**Power Spectrum**, **Cross-Correlation Coefficient**, and
+It presents the three key metrics—**Power Spectrum**, **Cross-Correlation**, and
 **Transfer Function**—used to assess the reconstruction performance of the model.
 
 <p align="center">
