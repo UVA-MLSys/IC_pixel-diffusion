@@ -18,7 +18,7 @@ The core architecture of this project is based on **“Posterior Sampling of the
 3. Finally, we assess the model’s accuracy using three key metrics: Power Spectrum, Cross-Correlation Coefficient, and Transfer Function.
 
 
-### Dataset Preparation
+## Dataset Preparation
 <details>
 <summary><b>Details</b></summary>
 
@@ -52,7 +52,7 @@ The complete datasets (2000 generated samples for each redshift) are available o
 </details>
 
 
-### Model Training
+## Model Training
 <details>
 <summary><b>Details</b></summary>
 
@@ -71,7 +71,7 @@ All key hyperparameters—such as the number of epochs, batch size, learning rat
 </details>
 
 
-### Sampling and Evaluation
+## Sampling and Evaluation
 <details> 
 <summary><b>Details</b></summary>
 
@@ -92,7 +92,7 @@ The evaluation script computes three primary metrics to quantify reconstruction 
 - **Transfer Function** — evaluates the scale-dependent amplitude accuracy.
 </details>
 
-### Results
+## Results
 <details> 
 <summary><b>Details</b></summary>
 
