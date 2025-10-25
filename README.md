@@ -18,7 +18,7 @@ The core architecture of this project is based on **“Posterior Sampling of the
 3. Finally, we assess the model’s accuracy using three key metrics: Power Spectrum, Cross-Correlation Coefficient, and Transfer Function.
 
 
-## Dataset Preparation
+### Dataset Preparation
 <details>
 <summary><b>Details</b></summary>
 
@@ -52,7 +52,7 @@ The complete datasets (2000 generated samples for each redshift) are available o
 </details>
 
 
-## Model Training
+### Model Training
 <details>
 <summary><b>Details</b></summary>
 
@@ -71,37 +71,53 @@ All key hyperparameters—such as the number of epochs, batch size, learning rat
 </details>
 
 
-## Sampling and Evaluation
+### Sampling and Evaluation
 <details> 
-<summary><b> Details</b></summary>
+<summary><b>Details</b></summary>
 
-After training, the model enters the **sampling phase**, where it generates reconstructed
-initial conditions from unseen test data. During sampling, the model receives the **observed z = 0 halo field**
-as input and progressively denoises it to reconstruct the corresponding **z = 127 initial condition field**.
+After training, the model enters the **sampling phase**, where it generates reconstructed initial conditions from unseen test data. During sampling, the model takes the observed z = 0 halo/DM field as input and progressively denoises it to reconstruct the corresponding z = 127 initial condition field.
 
-The sampling process is handled by the following script:
-[`sample.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/sample.py)
+The sampling process is executed using the following script:[`sample.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/sample.py)
 
-The **number of generated samples** can be adjusted as a hyperparameter in the configuration file, allowing flexibility in testing on different dataset sizes.
+The number of generated samples can be adjusted as a hyperparameter in the configuration file.
 
-Once the samples are generated, they are combined into a single file using the stacking script:
-[`combine_samples.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Combine_sample.py)
+Once sampling is complete, the generated outputs are combined into a single file using the stacking script:[`combine_samples.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Combine_sample.py)
 
-This combined sample file is then used to evaluate the model’s reconstruction performance.
-The evaluation is performed using:
-[`result.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/results.py)
+This combined file is then used to evaluate the model’s reconstruction performance. Evaluation is carried out using: [`result.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/results.py)
 
-The evaluation script computes three key metrics to assess reconstruction quality:
+The evaluation script computes three primary metrics to quantify reconstruction accuracy:
+
 - **Power Spectrum** — measures the statistical similarity of large-scale modes.  
-- **Cross-Correlation Coefficient** — quantifies the correlation between predicted and true fields.  
+- **Cross-Correlation Coefficient** — quantifies the phase alignment between reconstructed and true fields.  
 - **Transfer Function** — evaluates the scale-dependent amplitude accuracy.
+</details>
+
+### Results
+<details> 
+<summary><b>Details</b></summary>
+
+In this part, I putted the plots of our expereineces in differen situations. 
 
 
-The figure below shows the evaluation results for the model trained on **1900 samples** and
-**conditioned on the halo density field**.  
-It presents the three key metrics—**Power Spectrum**, **Cross-Correlation**, and
-**Transfer Function**—used to assess the reconstruction performance of the model.
+#### Sensitibvity to number of training samples
+First of all you can see the performance of the model in face of different numbering of training samples and show the sensitivity of the model in face of different number of training samples we start with 100,500,800 and 1900 and check the performance of the model in each of them with the 3 metrics and show it in the plot. 
+<p align="center">
+  <img src="plots/training_samples.png"
+       alt="Evaluation metrics"
+       width="380">
+</p>
 
+### the effect of adding Velocity field
+here during the training we also add the Velocity field as extra information that add 6 channel to input dataset , to see how these extra information can effect the performance of the model in these 3 different metrci and reconstrcuted IC. 
+<p align="center">
+  <img src="plots/eval_plot.png"
+       alt="Evaluation metrics"
+       width="380">
+</p>
+
+### the effect of noisy observation 
+
+here we add use of redshift apace dark matter observation as condition to our model and train it and test it to see the perfromance of the model, we also shift into using halo dark matter fieds as more realistic dataset to condition into model to see the accuracy of the recunctsruted samples in face of more noisy observation . here I mention the plots our experiments here: 
 <p align="center">
   <img src="plots/eval_plot.png"
        alt="Evaluation metrics"
