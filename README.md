@@ -29,11 +29,10 @@ You can access to all of dataset of Quijote simulation int thier website (https:
 The **initial condition (z = 127)** density fields are generated using the **Latin Hypercube simulation snapshots** from Quijote. The corresponding generation script is provided here:
 [Initial Condition Generation Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z127_density.py).
 
-The dark matter denisty field in the dimension of the 128^3 is availabe directly from the Quijote latin hypercube dataset. You can download and use it . But you want to use it more high resoultion dataset beyond 128 , you can use of the latin haypercube snapshots and then produce the more high resolotion observation. 
+The **Dark matter Denisty field (z = 0)** density fields are generated using the **Latin Hypercube simulation snapshots** from Quijote. The corresponding generation script is provided here:
+[dark matter denisty feild](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z0_density.py)
 
-The **halo density fields (z = 0)** are constructed from the **halo catalogs** produced by the
-**Friends-of-Friends (FoF)** algorithm applied to the Quijote N-body simulations.
-The processing script used for this step is provided here:
+The **halo density fields (z = 0)** are constructed from the halo catalogs produced by the Friends-of-Friends (FoF) algorithm applied to the Quijote N-body simulations. The processing script used for this step is provided here:
 [Halo Field Generation Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_halo_redshift_mass.py).
 
 After generating the individual samples for both redshifts (z = 127 and z = 0),
@@ -44,6 +43,7 @@ into two single large `.npy` arrays for training.
 For demonstration purposes, two small **stacked dataset samples** are included in the `Dataset/` folder:
 
 - `quijote128_halo_train_3.npy` — stacked sample of the **z = 0** halo density fields (3 simulations)  
+- `quijote128_dm_train_3.npy` — stacked sample of the **z = 0** DM density fields (3 simulations) 
 - `quijote128_z127_train_3.npy` — stacked sample of the **z = 127** initial condition fields (3 simulations)
 
 These example files allow users to verify the dataset format and test the training and sampling scripts without downloading the full dataset.
