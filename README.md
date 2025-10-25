@@ -27,11 +27,14 @@ These simulations are used here to generate both the initial condition density f
 
 You can access all Quijote simulation datasets through their official website:[https://quijote-simulations.readthedocs.io](https://quijote-simulations.readthedocs.io/en/latest/index.html#). After downloading the simulation data, use the generation scripts provided in this repository to produce the voxelized datasets.
 
-- The **initial condition (z = 127)** density fields are generated using the Latin Hypercube simulation snapshots from Quijote. [Initial Condition Generation Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z127_density.py)
+- The **initial condition (z = 127)** density fields are generated using the Latin Hypercube simulation snapshots from Quijote.
+  [Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z127_density.py)
 
-- The **dark matter density fields (z = 0)** are generated from the same Latin Hypercube snapshots.[Dark Matter Density Field Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z0_density.py)
+- The **dark matter density fields (z = 0)** are generated from the same Latin Hypercube snapshots.
+  [Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z0_density.py)
 
-- The **halo density fields (z = 0)** are constructed from halo catalogs produced by the Friends-of-Friends (FoF) algorithm applied to the Quijote N-body simulations.[Halo Field Generation Code](https://github.com/UVA-MLSys/IC_pixel diffusion/blob/main/Dataset/generate_halo_redshift_mass.py)
+- The **halo density fields (z = 0)** are constructed from halo catalogs produced by the Friends-of-Friends (FoF) algorithm applied to the Quijote N-body simulations.
+  [Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_halo_redshift_mass.py)
 
 After generating the individual samples for both redshifts (z = 127 and z = 0), use the **stacking script** in the `Dataset/` folder to combine all simulation IDs into single large `.npy` arrays for training.
 
@@ -45,11 +48,7 @@ For demonstration purposes, three small stacked dataset samples are included in 
 
 These example files allow users to verify the dataset format and test the training and sampling scripts without downloading the full dataset.
 
-The **complete datasets** (2000 generated samples for each redshift) are available on Google Drive:
-- [Full Halo z = 0 Dataset](https://drive.google.com/drive/folders/1q6G-_9AL3xSll_kI4hf-qtSbotvebPuy?usp=drive_link)  
-- [Full Dark Matter z = 0 Dataset](https://drive.google.com/drive/folders/1q6G-_9AL3xSll_kI4hf-qtSbotvebPuy?usp=drive_link)  
-- [Full z = 127 Dataset](https://drive.google.com/drive/folders/1q6G-_9AL3xSll_kI4hf-qtSbotvebPuy?usp=drive_link)
-
+The **complete datasets** (2000 generated samples for each redshift) are available on Google Drive: [Complete Generated Dataset](https://drive.google.com/drive/folders/1ZXA-cQ1ivpXbd2ran7DfiySZpYnfk1vc?usp=sharing)  
 </details>
 
 
