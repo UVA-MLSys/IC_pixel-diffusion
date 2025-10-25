@@ -96,37 +96,51 @@ The evaluation script computes three primary metrics to quantify reconstruction 
 <details> 
 <summary><b>Details</b></summary>
 
-In this part, I putted the plots of our expereineces in differen situations. 
+This section presents the results of the experiments conducted under different training and observation conditions.
 
 
-#### Sensitibvity to number of training samples
-First of all you can see the performance of the model in face of different numbering of training samples and show the sensitivity of the model in face of different number of training samples we start with 100,500,800 and 1900 and check the performance of the model in each of them with the 3 metrics and show it in the plot. 
+### Sensitivity to the Number of Training Samples
+We first examine the sensitivity of the model to the number of training samples. The model was trained with 100, 500, 800, and 1900 samples, and its performance was evaluated using the three metrics: Power Spectrum, Cross-Correlation Coefficient, and Transfer Function.
+
+As shown in the figure below, increasing the number of training samples primarily improves the Transfer Function, while P(k) and C(k) exhibit only little gains (e.g., *C(k)* increases slightly from 0.88 for 100 samples to 0.90 for 1900 samples).
+
+<h4 align="center">Figure 1: Sensitivity to the number of training samples</h4>
 <p align="center">
-  <img src="plots/training_samples.png"
-       alt="Evaluation metrics"
-       width="380">
+  <img src="plots/training_samples.png" width="420">
 </p>
 
-### The effect of adding Velocity field
-here during the training we also add the Velocity field as extra information that add 6 channel to input dataset , to see how these extra information can effect the performance of the model in these 3 different metrci and reconstrcuted IC. 
+
+### Effect of Adding the Velocity Field
+Next, we investigate the effect of adding the velocity field as additional input information during training. This introduces six extra channels into the input dataset. The goal is to assess how this additional physical information influences reconstruction quality across the three metrics.
+
+Adding the velocity field results in a slight improvement in the cross-correlation coefficient (*C(k)*), but at higher training sample sizes, it produces a negative impact on the transfer function, indicating potential over-conditioning or redundancy in the input features.
+
+<h4 align="center">Figure 2: Effect of Adding the Velocity Field</h4>
 <p align="center">
   <img src="plots/velocity_field.png"
-       alt="Evaluation metrics"
-       width="880">
+       alt="Effect of velocity field on model performance"
+       width="800">
 </p>
 
-### The effect of noisy observation 
+### Effect of Noisy Observations
+Finally, we test the model under noisy observational conditions. We condition the model on redshift-space dark matter fields and halo fields, both of which represent more realistic and noisier observations compared to ideal real-space dark matter fields.
 
-here we add use of redshift apace dark matter observation as condition to our model and train it and test it to see the perfromance of the model, we also shift into using halo dark matter fieds as more realistic dataset to condition into model to see the accuracy of the recunctsruted samples in face of more noisy observation . here I mention the plots our experiments here: 
+As seen in the plots below, conditioning on noisier data degrades reconstruction accuracy—especially the cross-correlation coefficient (*C(k)*):  
+- Using halo fields as observations reduces *C(k)* from 0.90 to 0.60.  
+- Using redshift-space dark matter fields decreases *C(k)* from 0.90 to 0.87.  
+
+These results show that as observation noise increases, model performance—particularly in *C(k)*—deteriorates more noticeably.
+
+<h4 align="center">Figure 3: Effect of Noisy Observations (Halo and Redshift-Space)</h4>
 <p align="center">
   <img src="plots/halo_dm.png"
-       alt="Evaluation metrics"
-       width="380">
-    <img src="plots/redshift_real.png"
-       alt="Evaluation metrics"
-       width="380">
+       alt="Performance using halo field observations"
+       width="420">
+  <img src="plots/redshift_real.png"
+       alt="Performance using redshift-space observations"
+       width="420">
 </p>
 
-
 </details>
+
 
