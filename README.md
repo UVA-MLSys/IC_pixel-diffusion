@@ -23,7 +23,7 @@ The core architecture of this project is based on **“Posterior Sampling of the
 <summary><b>Details</b></summary>
 
 The dataset used for this project is based on the **Quijote simulation suite**, which provides large-scale N-body simulations of the Universe.  
-These simulations are used here to generate both the initial condition density fields (z = 127) and the observational fields — including dark matter** and **halo density fields (z = 0).
+These simulations are used here to generate both the initial condition density fields (z = 127) and the observational fields — including dark matter and halo density fields (z = 0).
 
 You can access all Quijote simulation datasets through their official website:[https://quijote-simulations.readthedocs.io](https://quijote-simulations.readthedocs.io/en/latest/index.html#). After downloading the simulation data, use the generation scripts provided in this repository to produce the voxelized datasets.
 
@@ -38,17 +38,17 @@ You can access all Quijote simulation datasets through their official website:[h
 
 After generating the individual samples for both redshifts (z = 127 and z = 0), use the **stacking script** in the `Dataset/` folder to combine all simulation IDs into single large `.npy` arrays for training.
 
-Depending on your training setup, you can select how many samples to use based on simulation ID. and split dataset between training and testing sampling based on Sim IDs. 
+Depending on your training setup, you can choose how many samples to include based on simulation ID, and split the dataset between training and testing subsets accordingly. 
 
 For demonstration purposes, three small stacked dataset samples are included in the `Dataset/` folder:
 
-- `quijote128_halo_train_3.npy` — stacked sample of **z = 0 halo density fields** (3 simulations)  
-- `quijote128_dm_train_3.npy` — stacked sample of **z = 0 dark matter density fields** (3 simulations)  
-- `quijote128_z127_train_3.npy` — stacked sample of **z = 127 initial condition fields** (3 simulations)
+- `quijote128_halo_train_3.npy` — stacked sample of z = 0 halo density fields (3 simulations)  
+- `quijote128_dm_train_3.npy` — stacked sample of z = 0 dark matter density fields (3 simulations)  
+- `quijote128_z127_train_3.npy` — stacked sample of z = 127 initial condition fields (3 simulations)
 
 These example files allow users to verify the dataset format and test the training and sampling scripts without downloading the full dataset.
 
-The **complete datasets** (2000 generated samples for each redshift) are available on Google Drive: [Complete Generated Dataset](https://drive.google.com/drive/folders/1ZXA-cQ1ivpXbd2ran7DfiySZpYnfk1vc?usp=sharing)  
+The complete datasets (2000 generated samples for each redshift) are available on Google Drive: [Complete Generated Dataset](https://drive.google.com/drive/folders/1ZXA-cQ1ivpXbd2ran7DfiySZpYnfk1vc?usp=sharing)  
 </details>
 
 
