@@ -1,5 +1,8 @@
-# IC_pixel-diffusion: Pixel-based diffusion model for reconstructing cosmological initial conditions from Dark Matter Halos. 
-This model reproduces the main architecture from the **"Posterior Sampling of the Initial Conditions of the Universe from Non-Linear Large Scale Structures Using Score-Based Generative Models"** ([arXiv:2304.03788](https://arxiv.org/abs/2304.03788)) and optimizes it for a new observation dataset. I trained it on **Quijote Latin Hypercube simulation dataset** to reconstruct the initial condition (z = 127) from DM halo (z=0).
+# IC_pixel-diffusion: Pixel-based Diffusion Model for Reconstructing Cosmological Initial Conditions
+
+This project investigates the **ability of diffusion models to reconstruct cosmological initial conditions (ICs)** under different scenarios.  
+We evaluate the model’s performance in the presence of **noisy observations** (halo fields), **varying numbers of training samples**, and by **adding additional observational information**, in order to study its robustness and reconstruction quality.
+
 
 <p align="center">
   <img src="plots/input-target.png"
@@ -7,10 +10,17 @@ This model reproduces the main architecture from the **"Posterior Sampling of th
        width="580">
 </p>
 
+## Overview
+
+The core architecture of this project is based on **“Posterior Sampling of the Initial Conditions of the Universe from Non-Linear Large-Scale Structures Using Score-Based Generative Models”**([arXiv:2304.03788](https://arxiv.org/abs/2304.03788)).
+1. We first generate datasets from the Quijote Latin Hypercube simulations for both z = 127 (initial conditions) and z = 0 (dark-matter and halo fields).  
+2. We then apply a pixel-based diffusion model to these observational datasets to evaluate reconstruction performance under different conditions. 
+3. Finally, we assess the model’s accuracy using three key metrics: Power Spectrum, Cross-Correlation Coefficient, and Transfer Function.
 
 
+##  Dataset Preparation
 <details>
-<summary><b> 1. Dataset Preparation</b></summary>
+<summary><b> Details</b></summary>
 
 The dataset used for this project is based on the **Quijote simulation suite**, which provides
 large-scale N-body simulations of the Universe. These simulations are used here to generate both
@@ -41,13 +51,11 @@ The **complete dataset** (2000 generated samples for each redshift) is available
 
 - [Full z = 0 dataset (Train_z0_2000.npy)](https://drive.google.com/drive/folders/1q6G-_9AL3xSll_kI4hf-qtSbotvebPuy?usp=drive_link)  
 - [Full z = 127 dataset (Train_z127_2000.npy)](https://drive.google.com/drive/folders/1BO2AznTSw_31z-AjEa_gmPvNS8frHMcL?usp=drive_link)
-
-
 </details>
 
-
+## Model Training
 <details>
-<summary><b> 2. Model Training</b></summary>
+<summary><b> Details </b></summary>
 
 The stacked datasets of both redshifts (**z = 0** halo fields and **z = 127** initial condition fields)
 are fed into the conditional diffusion model to begin training.  
@@ -62,9 +70,9 @@ can be modified in the corresponding [config file](https://github.com/UVA-MLSys/
 
 </details>
 
-
-<details>
-<summary><b>3. Sampling and Evaluation</b></summary>
+## Sampling and Evaluation
+<details> 
+<summary><b> Details</b></summary>
 
 After training, the model enters the **sampling phase**, where it generates reconstructed
 initial conditions from unseen test data. During sampling, the model receives the **observed z = 0 halo field**
