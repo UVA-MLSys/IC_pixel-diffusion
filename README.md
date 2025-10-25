@@ -106,7 +106,7 @@ As shown in the figure below, increasing the number of training samples primaril
 
 <h4 align="center">Figure 1: Sensitivity to the number of training samples</h4>
 <p align="center">
-  <img src="plots/training_samples.png" width="420">
+  <img src="plots/training_samples.png" width="380">
 </p>
 
 
@@ -119,7 +119,7 @@ Adding the velocity field results in a slight improvement in the cross-correlati
 <p align="center">
   <img src="plots/velocity_field.png"
        alt="Effect of velocity field on model performance"
-       width="800">
+       width="1000">
 </p>
 
 ### Effect of Noisy Observations
@@ -135,10 +135,10 @@ These results show that as observation noise increases, model performance—part
 <p align="center">
   <img src="plots/halo_dm.png"
        alt="Performance using halo field observations"
-       width="420">
+       width="350">
   <img src="plots/redshift_real.png"
        alt="Performance using redshift-space observations"
-       width="420">
+       width="350">
 </p>
 
 </details>
