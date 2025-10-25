@@ -107,7 +107,7 @@ First of all you can see the performance of the model in face of different numbe
        width="380">
 </p>
 
-### the effect of adding Velocity field
+### The effect of adding Velocity field
 here during the training we also add the Velocity field as extra information that add 6 channel to input dataset , to see how these extra information can effect the performance of the model in these 3 different metrci and reconstrcuted IC. 
 <p align="center">
   <img src="plots/velocity_field.png"
@@ -115,11 +115,14 @@ here during the training we also add the Velocity field as extra information tha
        width="880">
 </p>
 
-### the effect of noisy observation 
+### The effect of noisy observation 
 
 here we add use of redshift apace dark matter observation as condition to our model and train it and test it to see the perfromance of the model, we also shift into using halo dark matter fieds as more realistic dataset to condition into model to see the accuracy of the recunctsruted samples in face of more noisy observation . here I mention the plots our experiments here: 
 <p align="center">
-  <img src="plots/eval_plot.png"
+  <img src="plots/halo_dm.png"
+       alt="Evaluation metrics"
+       width="380">
+    <img src="plots/redshift_real.png"
        alt="Evaluation metrics"
        width="380">
 </p>
