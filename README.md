@@ -22,13 +22,14 @@ The core architecture of this project is based on **“Posterior Sampling of the
 <details>
 <summary><b> Details</b></summary>
 
-The dataset used for this project is based on the **Quijote simulation suite**, which provides
-large-scale N-body simulations of the Universe. These simulations are used here to generate both
-the **initial condition density fields (z = 127)** and the **halo density fields (z = 0)**.
+The dataset used for this project is based on the **Quijote simulation suite**, which provides large-scale N-body simulations of the Universe. These simulations are used here to generate both the initial condition density fields (z = 127) and the observation dark matter and halo density fields (z = 0) .
 
-The **initial condition (z = 127)** density fields are generated using the **Latin Hypercube simulation snapshots**
-from Quijote. The corresponding generation script is provided here:
+You can access to all of dataset of Quijote simulation int thier website (https://quijote-simulations.readthedocs.io/en/latest/index.html#) and then use of the genrated dataset code that provided here to generated dataset. 
+
+The **initial condition (z = 127)** density fields are generated using the **Latin Hypercube simulation snapshots** from Quijote. The corresponding generation script is provided here:
 [Initial Condition Generation Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z127_density.py).
+
+The dark matter denisty field in the dimension of the 128^3 is availabe directly from the Quijote latin hypercube dataset. You can download and use it . But you want to use it more high resoultion dataset beyond 128 , you can use of the latin haypercube snapshots and then produce the more high resolotion observation. 
 
 The **halo density fields (z = 0)** are constructed from the **halo catalogs** produced by the
 **Friends-of-Friends (FoF)** algorithm applied to the Quijote N-body simulations.
