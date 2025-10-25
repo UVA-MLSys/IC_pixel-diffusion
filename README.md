@@ -110,9 +110,9 @@ First of all you can see the performance of the model in face of different numbe
 ### the effect of adding Velocity field
 here during the training we also add the Velocity field as extra information that add 6 channel to input dataset , to see how these extra information can effect the performance of the model in these 3 different metrci and reconstrcuted IC. 
 <p align="center">
-  <img src="plots/eval_plot.png"
+  <img src="plots/velocity_field.png"
        alt="Evaluation metrics"
-       width="380">
+       width="880">
 </p>
 
 ### the effect of noisy observation 
