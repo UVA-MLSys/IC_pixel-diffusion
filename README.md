@@ -48,7 +48,7 @@ These example files allow users to verify the dataset format and test the traini
 The **complete datasets** (2000 generated samples for each redshift) are available on Google Drive:
 - [Full Halo z = 0 Dataset](https://drive.google.com/drive/folders/1q6G-_9AL3xSll_kI4hf-qtSbotvebPuy?usp=drive_link)  
 - [Full Dark Matter z = 0 Dataset](https://drive.google.com/drive/folders/1q6G-_9AL3xSll_kI4hf-qtSbotvebPuy?usp=drive_link)  
-- [Full z = 127 Dataset](https://drive.google.com/drive/folders/1BO2AznTSw_31z-AjEa_gmPvNS8frHMcL?usp=drive_link)
+- [Full z = 127 Dataset](https://drive.google.com/drive/folders/1q6G-_9AL3xSll_kI4hf-qtSbotvebPuy?usp=drive_link)
 
 </details>
 
