@@ -13,7 +13,7 @@ We evaluate the model’s performance in the presence of **noisy observations** 
 ## Overview
 
 The core architecture of this project is based on **“Posterior Sampling of the Initial Conditions of the Universe from Non-Linear Large-Scale Structures Using Score-Based Generative Models”**([arXiv:2304.03788](https://arxiv.org/abs/2304.03788)).
-1. We first generate datasets from the Quijote Latin Hypercube simulations for both z = 127 (initial conditions) and z = 0 (dark-matter and halo fields).  
+1. We first generate datasets from the Quijote Latin Hypercube set of N-Body simulations for both z = 127 (initial conditions) and z = 0 (dark-matter and halo fields).  
 2. We then apply a pixel-based diffusion model to these observational datasets to evaluate reconstruction performance under different conditions. 
 3. Finally, we assess the model’s accuracy using three key metrics: Power Spectrum, Cross-Correlation Coefficient, and Transfer Function.
 
@@ -22,34 +22,44 @@ The core architecture of this project is based on **“Posterior Sampling of the
 <details>
 <summary><b>Details</b></summary>
 
-The dataset used for this project is based on the **Quijote simulation suite**, which provides large-scale N-body simulations of the Universe.  
-These simulations are used here to generate both the initial condition density fields (z = 127) and the observational fields — including dark matter and halo density fields (z = 0).
+The dataset used for this project is based on the Quijote simulation suite, which provides large-scale N-body simulations of the Universe.  
+These simulations are used here to generate both the initial-condition density fields (z = 127) and the observational fields — including dark matter and halo density fields (z = 0).
 
-You can access all Quijote simulation datasets through their official website:[https://quijote-simulations.readthedocs.io](https://quijote-simulations.readthedocs.io/en/latest/index.html#). After downloading the simulation data, use the generation scripts provided in this repository to produce the voxelized datasets.
+For this project, we use density fields from the Latin Hypercube (LH) set to train and test the model. Specifically, we employ the 2,000-simulation LH ensemble (no massive neutrinos), in which each simulation is initialized with a different random seed and cosmological parameters sampled across wide ranges for \(\Omega_m\), \(\Omega_b\), \(h\), \(n_s\), and \(\sigma_8\). You can access the Quijote datasets at the official website: [https://quijote-simulations.readthedocs.io](https://quijote-simulations.readthedocs.io/en/latest/index.html#). After downloading, use the generation scripts in this repository to produce voxelized 3D grids for training and testing.
 
-- The **initial condition (z = 127)** density fields are generated using the Latin Hypercube simulation snapshots from Quijote.
-  [Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z127_density.py)
+### Generating the Datasets
+**Initial Conditions (z = 127):**  
+To generate the IC density fields, you need to download the Latin Hypercube snapshot files from the Quijote simulation suite.  
+Each simulation ID includes 8 HDF5 snapshot files, which together contain the particle data necessary to reconstruct the dark matter density field at z = 127.  
+Running the IC generation script below will convert these snapshots into voxelized 3D density fields for all 2,000 simulations.[IC (z = 127) Generation Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z127_density.py)
 
-- The **dark matter density fields (z = 0)** are generated from the same Latin Hypercube snapshots.
-  [Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z0_density.py)
+**Dark Matter Density Fields (z = 0):**  
+For z = 0, you can either:Use the pre-generated LH dark matter density fields available at 64³ or 128³ resolution, or Recompute your own 3D density grids at custom resolutions by downloading the z = 0 snapshots (`snapdir_004`) for each of the 2,000 simulation IDs and running the following script:[DM (z = 0) Generation Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_train_z0_density.py)
 
-- The **halo density fields (z = 0)** are constructed from halo catalogs produced by the Friends-of-Friends (FoF) algorithm applied to the Quijote N-body simulations.
-  [Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_halo_redshift_mass.py)
+**Halo Density Fields (z = 0):**  
+Halo density fields are constructed from halo catalogs derived via the Friends-of-Friends (FoF) algorithm applied to each simulation.  
+You can use the script below to generate voxelized halo density grids at your chosen resolution:[Halo Field Generation Code](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/Dataset/generate_halo_redshift_mass.py)
 
-After generating the individual samples for both redshifts (z = 127 and z = 0), use the **stacking script** in the `Dataset/` folder to combine all simulation IDs into single large `.npy` arrays for training.
+### Combining the Samples
 
-Depending on your training setup, you can choose how many samples to include based on simulation ID, and split the dataset between training and testing subsets accordingly. 
+After generating the individual samples for both redshifts (z = 127 and z = 0), use the **stacking script** in the `Dataset/` folder to combine all simulation IDs into single large `.npy` arrays for training.Depending on your training setup, you can select how many samples to include (e.g., 100, 500, 1900) based on simulation IDs and split the dataset into training and testing subsets accordingly.
+
+### Example Files
 
 For demonstration purposes, three small stacked dataset samples are included in the `Dataset/` folder:
 
 - `quijote128_halo_train_3.npy` — stacked sample of z = 0 halo density fields (3 simulations)  
 - `quijote128_dm_train_3.npy` — stacked sample of z = 0 dark matter density fields (3 simulations)  
-- `quijote128_z127_train_3.npy` — stacked sample of z = 127 initial condition fields (3 simulations)
+- `quijote128_z127_train_3.npy` — stacked sample of z = 127 initial-condition fields (3 simulations)
 
-These example files allow users to verify the dataset format and test the training and sampling scripts without downloading the full dataset.
+These examples allow users to verify the dataset format and test the training and sampling pipeline without downloading the full dataset.
 
-The complete datasets (2000 generated samples for each redshift) are available on Google Drive: [Complete Generated Dataset](https://drive.google.com/drive/folders/1ZXA-cQ1ivpXbd2ran7DfiySZpYnfk1vc?usp=sharing)  
+### Full Datasets
+
+The complete generated datasets (2,000 samples per redshift/type) are available on Google Drive:[Complete Generated Dataset](https://drive.google.com/drive/folders/1ZXA-cQ1ivpXbd2ran7DfiySZpYnfk1vc?usp=sharing)
+
 </details>
+
 
 
 ## Model Training
