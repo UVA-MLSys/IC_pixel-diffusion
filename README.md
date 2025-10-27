@@ -25,7 +25,7 @@ The core architecture of this project is based on **“Posterior Sampling of the
 The dataset used for this project is based on the Quijote simulation suite, which provides large-scale N-body simulations of the Universe.  
 These simulations are used here to generate both the initial-condition density fields (z = 127) and the observational fields — including dark matter and halo density fields (z = 0).
 
-For this project, we use density fields from the Latin Hypercube (LH) set to train and test the model. Specifically, we employ the 2,000-simulation LH ensemble (no massive neutrinos), in which each simulation is initialized with a different random seed and cosmological parameters sampled across wide ranges for \(\Omega_m\), \(\Omega_b\), \(h\), \(n_s\), and \(\sigma_8\). You can access the Quijote datasets at the official website: [https://quijote-simulations.readthedocs.io](https://quijote-simulations.readthedocs.io/en/latest/index.html#). After downloading, use the generation scripts in this repository to produce voxelized 3D grids for training and testing.
+For this project, we use density fields from the Latin Hypercube (LH) set to train and test the model. Specifically, we employ the 2,000-simulation LH ensemble, in which each simulation is initialized with a different random seed and cosmological parameters sampled across rang. You can access the Quijote datasets at the official website: [https://quijote-simulations.readthedocs.io](https://quijote-simulations.readthedocs.io/en/latest/index.html#). After downloading, use the generation scripts in this repository to produce voxelized 3D grids for training and testing.
 
 ### Generating the Datasets
 **Initial Conditions (z = 127):**  
@@ -86,6 +86,8 @@ All key hyperparameters—such as the number of epochs, batch size, learning rat
 <summary><b>Details</b></summary>
 
 After training, the model enters the **sampling phase**, where it generates reconstructed initial conditions from unseen test data. During sampling, the model takes the observed z = 0 halo/DM field as input and progressively denoises it to reconstruct the corresponding z = 127 initial condition field.
+
+Before sampling, generate the observation/ground-truth pairs with:[`make_obs.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/make_obs.py). This script prepares the inputs required for sampling and the targets used later for evaluation.
 
 The sampling process is executed using the following script:[`sample.py`](https://github.com/UVA-MLSys/IC_pixel-diffusion/blob/main/sample.py)
 
