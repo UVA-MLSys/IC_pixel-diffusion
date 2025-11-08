@@ -1,7 +1,7 @@
 # IC_pixel-diffusion: Pixel-based Diffusion Model for Reconstructing Cosmological Initial Conditions
 
 This project investigates the **ability of diffusion models to reconstruct cosmological initial conditions (ICs)** under different scenarios.  
-We evaluate the model’s performance in the presence of **noisy observations** (halo fields), **varying numbers of training samples**, and by **adding additional observational information**, in order to study its robustness and reconstruction quality.
+We evaluate the model’s performance in the presence of **noisy observations** (halo fields) and **varying numbers of training samples** in order to study its robustness and reconstruction quality.
 
 
 <p align="center">
@@ -122,17 +122,6 @@ As shown in the figure below, increasing the number of training samples primaril
 </p>
 
 
-### Effect of Adding the Velocity Field
-Next, we investigate the effect of adding the velocity field as additional input information during training. This introduces six extra channels into the input dataset. The goal is to assess how this additional physical information influences reconstruction quality across the three metrics.
-
-Adding the velocity field results in a slight improvement in the cross-correlation coefficient (*C(k)*), but at higher training sample sizes, it produces a negative impact on the transfer function, indicating potential over-conditioning or redundancy in the input features.
-
-<h4 align="center">Figure 2: Effect of Adding the Velocity Field</h4>
-<p align="center">
-  <img src="plots/velocity_field.png"
-       alt="Effect of velocity field on model performance"
-       width="1000">
-</p>
 
 ### Effect of Noisy Observations
 Finally, we test the model under noisy observational conditions. We condition the model on redshift-space dark matter fields and halo fields, both of which represent more realistic and noisier observations compared to ideal real-space dark matter fields.
