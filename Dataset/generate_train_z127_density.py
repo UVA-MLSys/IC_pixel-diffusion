@@ -15,7 +15,7 @@ grid         = 128
 z            = 127
 ptypes       = [1]
 input_ids_path = 
-output_dir   = '/scratch/dye7jx/Projects/ICdiffusion/Dataset/Train_z127_from_IC_1900'
+output_dir   = '/scratch/dye7jx/Projects/ICdiffusion/Dataset/Train_z127_from_IC_2000'
 
 # === FUNCTION ===
 def compute_df(snapshot, ptypes, grid, fout):
