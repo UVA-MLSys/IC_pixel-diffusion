@@ -20,7 +20,7 @@ Nside = config.data.image_size
 DEVICE = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
 # Create directory structure
-checkpoint_dir = os.path.join(config.model.workdir, "checkpoints_2000_halos+dm_128_ddp")
+checkpoint_dir = os.path.join(config.model.workdir, "checkpoints_1900")
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 sigma_time = get_sigma_time(config.model.sigma_min, config.model.sigma_max)
