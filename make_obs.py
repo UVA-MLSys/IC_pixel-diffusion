@@ -8,7 +8,7 @@ noise_sigma = 0.1  # Should match training config
 # === File paths ===
 z127_path = f"/scratch/dye7jx/Projects/ICdiffusion/Dataset/Train_z127_from_IC_2000/df_m_z=127_sim1999.npy"
 z0_path = f"/scratch/dye7jx/Projects/ICdiffusion/Dataset/halo_LH_128/halo_lh_1999.npy"
-output_dir = f"/scratch/dye7jx/Projects/ICdiffusion/run/cosmo1999_halo+dm_1950"
+output_dir = f"/scratch/dye7jx/Projects/ICdiffusion/run/cosmo1999_dm_1900"
 os.makedirs(output_dir, exist_ok=True)
 
 # === Load z=0 and add Gaussian noise ===
