@@ -5,8 +5,8 @@ import MAS_library as MASL
 # === Settings ===
 simulation_ids = list(range(0, 2000))  # 0..400 inclusive
 base_path = '/scratch/dye7jx/Dataset/Latin_hypercube_snappdir_oo4'
-output_dir = '/scratch/dye7jx/Projects/ICdiffusion/Dataset/Train_z0_2000_512'
-grid = 512
+output_dir = '/scratch/dye7jx/Projects/ICdiffusion/Dataset/Train_z0_2000'
+grid = 128
 BoxSize = 1000.0  # Mpc/h
 ptypes = [1]  # dark matter particles
 
