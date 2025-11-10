@@ -13,7 +13,7 @@ snapnum = 4
 mass_cut = 1.32e13  # Msun/h
 axis = 2  # Redshift distortion axis (z)
 input_dir = "/scratch/dye7jx/Dataset/halos_lh"
-output_dir = "/scratch/dye7jx/Projects/ICdiffusion/Dataset/halo_LH_128"
+output_dir = "./Dataset/halo_LH_128"
 os.makedirs(output_dir, exist_ok=True)
 
 # --- Loop over simulations ---

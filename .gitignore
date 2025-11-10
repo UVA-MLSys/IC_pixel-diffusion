@@ -1,3 +1,9 @@
+run
+logs
+*.npy
+Dataset/Train_z0_2000
+Dataset/Train_z127_from_IC_2000/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

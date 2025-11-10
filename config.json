@@ -14,7 +14,7 @@
         "num_samples": 10
     },
     "data": {
-        "path": "/scratch/dye7jx/Projects/ICdiffusion/Dataset/",
+        "path": "./Dataset/",
         "image_size": 128,
         "num_input_channels": 2,
         "num_output_channels": 1,

@@ -3,9 +3,9 @@ import os
 import numpy as np
 
 # === Paths ===
-z0_dir   = "/scratch/dye7jx/Projects/ICdiffusion/Dataset/Train_z0_2000"
-z127_dir = "/scratch/dye7jx/Projects/ICdiffusion/Dataset/Train_z127_from_IC_2000"
-out_dir  = "/scratch/dye7jx/Projects/ICdiffusion/Dataset"
+z0_dir   = "./Dataset/Train_z0_2000"
+z127_dir = "./Dataset/Train_z127_from_IC_2000"
+out_dir  = "./Dataset"
 
 sim_ids = list(range(3))
 

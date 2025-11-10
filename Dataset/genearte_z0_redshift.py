@@ -10,7 +10,7 @@ MAS = 'CIC'
 axis = 0  # Redshift-space distortion along x-axis
 verbose = True
 snap_template = "/scratch/dye7jx/Dataset/Latin_hypercube_snappdir_oo4/{i}/"
-save_dir = "/scratch/dye7jx/Projects/ICdiffusion/Dataset/z0_redshift_density_128_1900"
+save_dir = "./Dataset/z0_redshift_density_128_1900"
 os.makedirs(save_dir, exist_ok=True)
 
 for i in range(48, 100):  # ⬅️ Updated range
