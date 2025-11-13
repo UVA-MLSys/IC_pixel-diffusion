@@ -10,29 +10,30 @@ from torch_ema import ExponentialMovingAverage
 import logging
 import os
 import sys
+from os.path import join
 
 task_id = int(sys.argv[1]) 
-cosmo_dir = str(sys.argv[2]) 
 
 config = get_config('./config.json')
+
 Nside = config.data.image_size
 #DEVICE = config.device
 DEVICE = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
 # Create directory structure
-checkpoint_dir = os.path.join(config.model.workdir, "checkpoints_1900")
+checkpoint_dir = join(config.model.workdir, config.model.checkpoint_dir)
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 sigma_time = get_sigma_time(config.model.sigma_min, config.model.sigma_max)
 sample_time = get_sample_time(config.model.sampling_eps, config.model.T)
 
-data_path = os.path.join(config.model.workdir, cosmo_dir) + "/"
-
+cosmo_dir = config.model.cosmo_dir
+data_path = join(config.model.workdir, cosmo_dir)
 
 # Build pytorch dataloaders
-input_data = np.float32(np.load(data_path + 'observation.npy'))
+input_data = np.float32(np.load(join(data_path, 'observation.npy')))
 print("Loaded shape:", input_data.shape)
-label_data = np.float32(np.load(data_path + 'truth.npy'))
+label_data = np.float32(np.load(join(data_path, 'truth.npy')))
 input_data = torch.from_numpy(input_data).to(DEVICE)
 label_data = torch.from_numpy(label_data).to(DEVICE)
 input_data = torch.unsqueeze(input_data, dim=1)
@@ -56,7 +57,7 @@ ema = ExponentialMovingAverage(model.parameters(), decay=config.model.ema_rate)
 sde = VESDE(config.model.sigma_min, config.model.sigma_max, config.model.num_scales, config.model.T, config.model.sampling_eps)
 
 # Check for existing checkpoint
-checkpoint_path = os.path.join(checkpoint_dir, 'checkpoint.pth')
+checkpoint_path = join(checkpoint_dir, 'checkpoint.pth')
 if os.path.isfile(checkpoint_path):
     loaded_state = torch.load(checkpoint_path, map_location=DEVICE)
     optimizer.load_state_dict(loaded_state['optimizer'])

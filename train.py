@@ -35,10 +35,10 @@ config = get_config('./config.json')
 if is_main_process:
     print("🚀 Using DistributedDataParallel (DDP) for training.")
     print("🔍 Number of GPUs being used:", dist.get_world_size())
-    checkpoint_dir = os.path.join(config.model.workdir, "checkpoints_1900")
+    checkpoint_dir = os.path.join(config.model.workdir, config.model.checkpoint_dir)
     os.makedirs(checkpoint_dir, exist_ok=True)
 
-    gfile_stream = open(os.path.join(config.model.workdir, 'stdout_1900.txt'), 'w')
+    gfile_stream = open(os.path.join(config.model.workdir, 'stdout.txt'), 'w')
     handler = logging.StreamHandler(gfile_stream)
     formatter = logging.Formatter('%(levelname)s - %(filename)s - %(asctime)s - %(message)s')
     logger = logging.getLogger()
@@ -62,12 +62,14 @@ def train_one_epoch(training_loader, model, optimizer, ema, scaler, epoch):
         label_data = data_list[1].to(DEVICE, non_blocking=True)
         B = label_data.size(dim=0)
         input_data += config.data.noise_sigma * torch.randn_like(input_data)
+        
         time_steps = sample_time(shape=(B,)).to(DEVICE)
         sigmas = sigma_time(time_steps).to(DEVICE)
         sigmas = sigmas[:, None, None, None, None]
         z = torch.randn_like(label_data)
         inputs = torch.cat([label_data + sigmas * z, input_data], dim=1)
         optimizer.zero_grad(set_to_none=True)
+        
         with torch.amp.autocast("cuda"):
             output = model(inputs, time_steps)
             loss = torch.sum(torch.square(output + z)) / B
@@ -78,14 +80,16 @@ def train_one_epoch(training_loader, model, optimizer, ema, scaler, epoch):
         scaler.update()
         ema.update()
         avg_loss += loss.item()
+
+        progress_bar.set_postfix({'loss': f'{avg_loss:.4g}'})
         counter += 1
     return avg_loss / counter
 
 if is_main_process:
     logging.info("💾 Loading data on all processes...")
 
-input_data = np.float32(np.load(config.data.path + 'quijote128_z127_train_1900.npy'))
-label_data = np.float32(np.load(config.data.path + 'quijote128_z0_train_1900.npy'))
+input_data = np.float32(np.load(config.data.path + 'quijote128_dm_train_64.npy')) # at z0 # originally quijote128_z0_train_1900
+label_data = np.float32(np.load(config.data.path + 'quijote128_z127_train_64.npy')) # at z inf or 12.7 here # originally quijote128_z127_train_1900
 label_data = (label_data - np.mean(label_data, axis=(1, 2, 3), keepdims=True)) / np.std(label_data, axis=(1, 2, 3), keepdims=True)
 input_data = torch.from_numpy(input_data)
 label_data = torch.from_numpy(label_data)
@@ -101,7 +105,7 @@ training_loader = DataLoader(
     train_dataset,
     batch_size=config.training.batch_size,
     sampler=train_sampler,
-    num_workers=8,
+    num_workers=3,
     pin_memory=True,
     persistent_workers=True
 )
@@ -128,12 +132,12 @@ for epoch in range(init_epoch, config.training.n_epochs + 1):
         logging.info(f"Epoch {epoch+1}/{config.training.n_epochs} - Loss: {loss:.6f}")
         torch.save(
             dict(optimizer=optimizer.state_dict(), model=model.module.state_dict(), ema=ema.state_dict(), scaler=scaler.state_dict(), epoch=epoch),
-            os.path.join(config.model.workdir, "checkpoints_1900", 'checkpoint.pth')
+            os.path.join(checkpoint_dir, 'checkpoint.pth')
         )
         if epoch % 10 == 0:
             torch.save(
                 dict(optimizer=optimizer.state_dict(), model=model.module.state_dict(), ema=ema.state_dict(), scaler=scaler.state_dict(), epoch=epoch),
-                os.path.join(config.model.workdir, "checkpoints_1900", f'checkpoint_{epoch}.pth')
+                os.path.join(checkpoint_dir, f'checkpoint_{epoch}.pth')
             )
 
 if is_main_process:

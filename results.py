@@ -13,9 +13,9 @@ from mpl_toolkits.axes_grid1 import make_axes_locatable
 import scipy.stats as stats
 import matplotlib
 from matplotlib.ticker import FormatStrFormatter
-RdYlBu_r = matplotlib.cm.get_cmap('RdYlBu_r')
-import scienceplots
-plt.style.use(['science','no-latex','ieee'])
+from utils import get_config
+RdYlBu_r = matplotlib.colormaps.get_cmap('RdYlBu_r')
+# plt.style.use(['science','no-latex','ieee'])
 
 # Plotting parameters
 pix_cut = 8
@@ -23,14 +23,12 @@ fs = 10
 h = 3
 w = 4
 
-cosmo_dir = str(sys.argv[1]) 
-
 config = get_config('./config.json')
+
 Nside = config.data.image_size
 DEVICE = config.device
 
-data_path = config.model.workdir + cosmo_dir
-
+data_path = os.path.join(config.model.workdir, config.model.cosmo_dir)
 
 def pspec(x, boxsize=1000.0):
   mesh = ArrayMesh(x, BoxSize=boxsize)
