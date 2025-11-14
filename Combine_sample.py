@@ -3,16 +3,20 @@ from utils import get_config
 import os
 
 config = get_config('./config.json')
-task_id = 0
+task_ids = [0]
+Nside = config.data.image_size
 
 input_dir = os.path.join(config.model.workdir, config.model.cosmo_dir)
 
 # Load the original sample
-original_path = os.path.join(input_dir, f'sample{task_id}.npy')
-samples = np.load(original_path)  # Shape: (25, 1, 1, 128, 128, 128)
+samples = []
+for task_id in task_ids:
+    original_path = os.path.join(input_dir, f'sample{task_id}.npy')
+    sample = np.load(original_path)  # Shape: (25, 1, 1, 128, 128, 128)
+    samples.append(sample)
 
 # Reshape to remove singleton dimensions → (25, 128, 128, 128)
-samples_reshaped = samples.reshape(-1, 128, 128, 128)
+samples_reshaped = samples.reshape(-1, Nside, Nside, Nside)
 
 # Save as a new file (final version)
 final_path = os.path.join(input_dir, f'sample.npy')
