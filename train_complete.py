@@ -40,9 +40,18 @@ def get_parser():
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     parser.add_argument('--config', type=str, default='config.json')
-    parser.add_argument('--disable_tqdm', action='store_true', help='whether to enable tqdm progress bar')
-    parser.add_argument('--disable_ddp', action='store_true', help='whether to enable distributed data parallel')
-    parser.add_argument('--num_workers', type=int, default=3, help='number of workers for dataloader')
+    parser.add_argument(
+        '--disable_tqdm', action='store_true', 
+        help='whether to enable tqdm progress bar'
+    )
+    parser.add_argument(
+        '--disable_ddp', action='store_true', 
+        help='whether to enable distributed data parallel'
+    )
+    parser.add_argument(
+        '--num_workers', type=int, default=3, 
+        help='number of workers for dataloader'
+    )
     
     return parser
 
@@ -62,13 +71,14 @@ output_dir = os.path.join(config.model.workdir, config.model.cosmo_dir)
 if not os.path.exists(output_dir):
     os.makedirs(output_dir, exist_ok=True)
 
+checkpoint_dir = os.path.join(output_dir, config.model.checkpoint_dir)
+os.makedirs(checkpoint_dir, exist_ok=True)
+
 # %%
 if is_main_process:
     if enable_ddp:
         print("🚀 Using DistributedDataParallel (DDP) for training.")
         print("🔍 Number of GPUs being used:", dist.get_world_size())
-    checkpoint_dir = os.path.join(output_dir, config.model.checkpoint_dir)
-    os.makedirs(checkpoint_dir, exist_ok=True)
 
     gfile_stream = open(os.path.join(output_dir, 'stdout.txt'), 'w')
     handler = logging.StreamHandler(gfile_stream)
@@ -80,7 +90,6 @@ if is_main_process:
 # # Dataset
 
 # %%
-
 
 def list_files(directory, ext='h5'):
     return [str(file) for file in Path(directory).rglob(f"*.{ext}")]
@@ -98,9 +107,11 @@ def get_filepath(sample_no, file_type):
 class SimulationDataset(Dataset):
     def __init__(
         self, root, n_samples=None,
-        input_type='z0', target_type='z127'
+        input_type='z0', target_type='z127',
+        normalize=True
     ):
         self.root = root
+        self.normalize = normalize
         
         self.input_files = [
             os.path.join(root, get_filepath(sample_no, input_type))
@@ -122,23 +133,35 @@ class SimulationDataset(Dataset):
         return self.n_samples
 
     def __getitem__(self, idx):
-        input = np.load(self.input_files[idx])
-        input = torch.from_numpy(input).unsqueeze(0)
+        inputs = np.load(self.input_files[idx])
+        inputs = torch.from_numpy(inputs).unsqueeze(0)
         
         label  = np.load(self.target_files[idx])
+
+        # normalize the label, since gaussian noise will be added to it
+        if self.normalize: 
+            label = (label - np.mean(label)) / np.std(label)
         label = torch.from_numpy(label).unsqueeze(0)
-        return input, label
+
+        return inputs, label
 
 # %% [markdown]
 # # Training Utils
 
 # %%
-sigma_time = get_sigma_time(config.model.sigma_min, config.model.sigma_max)
-sample_time = get_sample_time(config.model.sampling_eps, config.model.T)
+sigma_time = get_sigma_time(
+    config.model.sigma_min, config.model.sigma_max
+)
+sample_time = get_sample_time(
+    config.model.sampling_eps, config.model.T
+)
 scaler = torch.amp.GradScaler("cuda")
 
 # %%
-def train_one_epoch(training_loader, model, optimizer, ema, scaler, epoch, scheduler):
+def train_one_epoch(
+    training_loader, model, optimizer, 
+    ema, scaler, epoch
+):
     model.train()
     if enable_ddp: training_loader.sampler.set_epoch(epoch)
     avg_loss = 0.
@@ -171,11 +194,12 @@ def train_one_epoch(training_loader, model, optimizer, ema, scaler, epoch, sched
         scaler.step(optimizer)
         scaler.update()
         ema.update()
-        scheduler.step(loss)
+        
         avg_loss += loss.item()
 
         progress_bar.set_postfix({'loss': f'{avg_loss:.4g}'})
         counter += 1
+    
     return avg_loss / counter
 
 # %%
@@ -230,7 +254,7 @@ model = UNet3DModel(config).to(DEVICE)
 if enable_ddp:
     model = DDP(model, device_ids=[local_rank], find_unused_parameters=False)
     
-optimizer = torch.optim.Adam(
+optimizer = torch.optim.AdamW(
     model.parameters(),
     lr=config.optim.lr,
     betas=(config.optim.beta1, 0.999),
@@ -258,18 +282,32 @@ with open(loss_file_name, 'w', newline='') as f:
 
 # %%
 for epoch in range(config.training.n_epochs):
-    loss = train_one_epoch(training_loader, model, optimizer, ema, scaler, epoch, scheduler)
+    loss = train_one_epoch(
+        training_loader, model, optimizer, 
+        ema, scaler, epoch
+    )
+    scheduler.step(loss)
+
     if is_main_process:
+        
         logging.info(f"Epoch {epoch+1}/{config.training.n_epochs} - Loss: {loss:.6g}")
         state_dict = model.module.state_dict() if enable_ddp else model.state_dict()
 
         torch.save(
-            dict(optimizer=optimizer.state_dict(), model=state_dict, ema=ema.state_dict(), scaler=scaler.state_dict(), epoch=epoch),
+            dict(
+                optimizer=optimizer.state_dict(), model=state_dict, 
+                ema=ema.state_dict(), 
+                scaler=scaler.state_dict(), epoch=epoch
+            ),
             os.path.join(checkpoint_dir, 'checkpoint.pth')
         )
         if epoch % 10 == 0:
             torch.save(
-                dict(optimizer=optimizer.state_dict(), model=state_dict, ema=ema.state_dict(), scaler=scaler.state_dict(), epoch=epoch),
+                dict(
+                    optimizer=optimizer.state_dict(), model=state_dict, 
+                    ema=ema.state_dict(), 
+                    scaler=scaler.state_dict(), epoch=epoch
+                ),
                 os.path.join(checkpoint_dir, f'checkpoint_{epoch}.pth')
             )
             
@@ -277,14 +315,20 @@ for epoch in range(config.training.n_epochs):
             writer = csv.writer(f)
             writer.writerow([epoch+1, loss])
 
+if is_main_process:
+    logging.info("🎉 Training complete.")
+
+if enable_ddp: cleanup_ddp()
+
 # %% [markdown]
 # # Make Observation
 
 # %%
 root = config.data.path
-test_sample_no = 0
-z127_path =  os.path.join(root, get_filepath(test_sample_no, file_type=config.data.input_type))
-z0_path = os.path.join(root, get_filepath(test_sample_no, file_type=config.data.target_type))
+test_sample_no = 1999
+
+z0_path = os.path.join(root, get_filepath(test_sample_no, file_type=config.data.input_type))
+z127_path =  os.path.join(root, get_filepath(test_sample_no, file_type=config.data.target_type))
 
 # %%
 # === Load z=0 and add Gaussian noise ===
@@ -304,92 +348,3 @@ np.save(os.path.join(output_dir, "observation.npy"), z0_noisy)
 np.save(os.path.join(output_dir, "truth.npy"), z127_norm)
 
 print(f"✅ Saved observation and truth to {output_dir}")
-
-# %% [markdown]
-# # Sample
-
-# %% [markdown]
-# ## Observation and Truth
-
-# %%
-from os.path import join
-
-Nside = config.data.image_size
-
-input_data = np.float32(np.load(join(output_dir, 'observation.npy')))
-print("Loaded shape:", input_data.shape)
-label_data = np.float32(np.load(join(output_dir, 'truth.npy')))
-input_data = torch.from_numpy(input_data).to(DEVICE)
-label_data = torch.from_numpy(label_data).to(DEVICE)
-input_data = torch.unsqueeze(input_data, dim=1)
-label_data = torch.unsqueeze(label_data, dim=1)
-
-# %% [markdown]
-# ## Initialize
-
-# %%
-from utils import VESDE
-
-# Initialize score model
-model = UNet3DModel(config)
-#model = DataParallel(model)
-model = model.to(DEVICE)
-
-# Define optimizer
-optimizer = torch.optim.Adam(
-        model.parameters(),
-        lr=config.optim.lr,
-        betas=(config.optim.beta1, 0.999),
-        eps=config.optim.eps,
-        weight_decay=config.optim.weight_decay                   
-        )
-ema = ExponentialMovingAverage(model.parameters(), decay=config.model.ema_rate)
-
-sde = VESDE(config.model.sigma_min, config.model.sigma_max, config.model.num_scales, config.model.T, config.model.sampling_eps)
-
-# %%
-# Check for existing checkpoint
-checkpoint_path = join(checkpoint_dir, 'checkpoint.pth')
-if os.path.isfile(checkpoint_path):
-    loaded_state = torch.load(checkpoint_path, map_location=DEVICE)
-    optimizer.load_state_dict(loaded_state['optimizer'])
-    model.load_state_dict(loaded_state['model'], strict=False)
-    ema.load_state_dict(loaded_state['ema'])
-    init_epoch = int(loaded_state['epoch'])
-    logging.warning(f"Loaded checkpoint from {checkpoint_path}.")
-else:
-    logging.warning(f"No checkpoint found at {checkpoint_path}. Starting from scratch.")
-
-
-# %%
-shape = (config.sampling.batch_size, 1, Nside, Nside, Nside)
-
-def one_step(x, t):
-    t_vec = torch.ones(shape[0], device=DEVICE) * t
-    model_output = model(torch.cat([x, input_data], dim=1), t_vec)
-    x, x_mean = sde.update_fn(x, t_vec, model_output=model_output)
-    return x, x_mean
-
-# %%
-model.eval()
-input_data = torch.tile(input_data, dims=(config.sampling.batch_size, 1, 1, 1, 1))
-task_id = 0
-
-samples = []
-print('Sampling begins.')
-final_path = os.path.join(output_dir, f'sample{task_id}.npy')
-for j in tqdm(
-    range(config.sampling.num_samples//config.sampling.batch_size),
-    disable=not (is_main_process and enable_tqdm)
-):
-    with torch.no_grad(), ema.average_parameters():
-        x = sde.prior_sampling(shape).to(DEVICE)
-        timesteps = sde.timesteps.to(DEVICE)
-        for i in range(sde.N):
-            t = timesteps[i]
-            x, x_mean = one_step(x, t)
-        samples.append(x_mean.detach().cpu().numpy())
-    np.save(final_path, np.array(samples))
-    
-np.save(final_path, np.array(samples))
-print(f"Sample saved to: {final_path}")

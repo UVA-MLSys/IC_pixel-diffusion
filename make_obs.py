@@ -1,12 +1,15 @@
-import os
+import os, sys
 import numpy as np
 from utils import get_config
 
 # === File paths ===
-z127_path = f"./Dataset/Train_z127_from_IC_2000/df_m_z=127_sim1999.npy"
-z0_path = f"./Dataset/Train_z0_2000/1999_z0.npy"
 
-config = get_config('./config.json')
+sample_no = 1999
+# z127_path = f"./Dataset/halo_LH_128/halo_lh_{sample_no}.npy" 
+z127_path = f"./Dataset/Train_z127_from_IC_2000/df_m_z=127_sim{sample_no}.npy"
+z0_path = f"./Dataset/Train_z0_2000/{sample_no}_z0.npy"
+
+config = get_config(str(sys.argv[1])) # './config.json'
 output_dir = os.path.join(config.model.workdir, config.model.cosmo_dir)
 
 if not os.path.exists(output_dir):

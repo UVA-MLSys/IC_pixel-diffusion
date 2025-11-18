@@ -1,6 +1,6 @@
 {
     "training": {
-        "batch_size": 4,
+        "batch_size":4,
         "n_epochs": 40000,
         "likelihood_weighting": false,
         "reduce_mean": false,
@@ -16,12 +16,12 @@
     "data": {
         "path": "./Dataset/",
         "image_size": 128,
-        "sample_size": 1900,
+        "sample_size": 100,
         "num_input_channels": 2,
         "num_output_channels": 1,
         "noise_sigma": 0.1,
         "cosmo_ids": [20, 40, 50, 70, 80, 90],
-        "input_type": "z0",
+        "input_type": "halo",
         "target_type": "z127"
     },
     "model": {
@@ -33,7 +33,7 @@
         "sampling_eps": 1e-5,
         "T": 1.0,
         "workdir": "run/",
-        "cosmo_dir": "cosmos_dm_1900/",
+        "cosmo_dir": "cosmos_halo_100/",
         "checkpoint_dir": "checkpoints/",
         "ema_rate": 0.999,
         "normalization": "GroupNorm",

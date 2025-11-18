@@ -1,7 +1,7 @@
 {
     "training": {
         "batch_size": 4,
-        "n_epochs": 40000,
+        "n_epochs": 400,
         "likelihood_weighting": false,
         "reduce_mean": false,
         "sde": "vesde",
@@ -16,7 +16,7 @@
     "data": {
         "path": "./Dataset/",
         "image_size": 128,
-        "sample_size": 1900,
+        "sample_size": 100,
         "num_input_channels": 2,
         "num_output_channels": 1,
         "noise_sigma": 0.1,
@@ -33,7 +33,7 @@
         "sampling_eps": 1e-5,
         "T": 1.0,
         "workdir": "run/",
-        "cosmo_dir": "cosmos_dm_1900/",
+        "cosmo_dir": "cosmos_dm_100/",
         "checkpoint_dir": "checkpoints/",
         "ema_rate": 0.999,
         "normalization": "GroupNorm",

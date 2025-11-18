@@ -1,16 +1,16 @@
 #!/bin/bash
-#SBATCH --job-name=halos_1900_smooth
+#SBATCH --job-name=halo_100
 #SBATCH --account=bii_dsc_community
 #SBATCH --partition=gpu
 #SBATCH --gres=gpu:a100:1
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1                # one Slurm task; torchrun will spawn 4 procs
-#SBATCH --cpus-per-task=5
-#SBATCH --mem=80G
-#SBATCH --time=1:00:00
-#SBATCH --output=logs/halos_64_%j.out
-#SBATCH --mail-user=mi3se@virginia.edu
-#SBATCH --mail-type=END,FAIL
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=128G
+#SBATCH --time=8:00:00
+#SBATCH --output=logs/halo_100_%j.out
+#---SBATCH --mail-user=mi3se@virginia.edu
+#---SBATCH --mail-type=END,FAIL
 
 module load gcc nccl
 
@@ -40,6 +40,6 @@ torchrun \
   --standalone \
   --nproc_per_node=1 \
   --master_port ${MASTER_PORT} \
-   train.py
+   train_complete.py --disable_tqdm --config config_halo_100_2.json
 
 echo "Training completed at: $(date)"

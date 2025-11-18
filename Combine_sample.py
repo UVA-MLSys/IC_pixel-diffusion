@@ -1,8 +1,10 @@
 import numpy as np
 from utils import get_config
-import os
+import os, sys
 
-config = get_config('./config.json')
+
+config_filename = str(sys.argv[1]) 
+config = get_config(config_filename)
 task_ids = [0]
 Nside = config.data.image_size
 
@@ -16,7 +18,7 @@ for task_id in task_ids:
     samples.append(sample)
 
 # Reshape to remove singleton dimensions → (25, 128, 128, 128)
-samples_reshaped = samples.reshape(-1, Nside, Nside, Nside)
+samples_reshaped = np.array(samples).reshape(-1, Nside, Nside, Nside)
 
 # Save as a new file (final version)
 final_path = os.path.join(input_dir, f'sample.npy')

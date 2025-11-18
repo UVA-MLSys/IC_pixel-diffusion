@@ -1,3 +1,4 @@
+# module load gcc openmpi
 import numpy as np
 from tqdm import tqdm
 from utils import get_config
@@ -23,7 +24,8 @@ fs = 10
 h = 3
 w = 4
 
-config = get_config('./config.json')
+config_filename = str(sys.argv[1]) # config.json
+config = get_config(config_filename)
 
 Nside = config.data.image_size
 DEVICE = config.device

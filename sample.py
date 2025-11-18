@@ -11,24 +11,43 @@ import logging
 import os
 import sys
 from os.path import join
+import argparse
 
-task_id = int(sys.argv[1]) 
+def get_parser():
+    parser = argparse.ArgumentParser(
+        description='Sample using Diffusion', 
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
+    parser.add_argument('--task_id', type=int, default=0, help='Task id for sample')
+    parser.add_argument('--config', type=str, default='config.json', help='Configuration file')
+    parser.add_argument(
+        '--disable_tqdm', action='store_true', 
+        help='whether to enable tqdm progress bar'
+    )
+    
+    return parser
 
-config = get_config('./config.json')
+parser = get_parser()
+args = parser.parse_args()
+config = get_config(args.config)
+
+task_id = args.task_id 
+config_filename = args.config
+enable_tqdm = not args.disable_tqdm
+config = get_config(config_filename)
+
 
 Nside = config.data.image_size
 #DEVICE = config.device
 DEVICE = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
 
-# Create directory structure
-checkpoint_dir = join(config.model.workdir, config.model.checkpoint_dir)
-os.makedirs(checkpoint_dir, exist_ok=True)
 
 sigma_time = get_sigma_time(config.model.sigma_min, config.model.sigma_max)
 sample_time = get_sample_time(config.model.sampling_eps, config.model.T)
 
 cosmo_dir = config.model.cosmo_dir
 data_path = join(config.model.workdir, cosmo_dir)
+checkpoint_dir = join(data_path, config.model.checkpoint_dir)
 
 # Build pytorch dataloaders
 input_data = np.float32(np.load(join(data_path, 'observation.npy')))
@@ -45,7 +64,7 @@ model = UNet3DModel(config)
 model = model.to(DEVICE)
 
 # Define optimizer
-optimizer = torch.optim.Adam(
+optimizer = torch.optim.AdamW(
         model.parameters(),
         lr=config.optim.lr,
         betas=(config.optim.beta1, 0.999),
@@ -64,9 +83,11 @@ if os.path.isfile(checkpoint_path):
     model.load_state_dict(loaded_state['model'], strict=False)
     ema.load_state_dict(loaded_state['ema'])
     init_epoch = int(loaded_state['epoch'])
-    logging.warning(f"Loaded checkpoint from {checkpoint_path}.")
+    logging.info(f"Loaded checkpoint from {checkpoint_path}.")
+    print(f"Loaded checkpoint from {checkpoint_path}.")
 else:
     logging.warning(f"No checkpoint found at {checkpoint_path}. Starting from scratch.")
+    print(f"No checkpoint found at {checkpoint_path}. Starting from scratch.")
 
 model.eval()
 
@@ -84,13 +105,19 @@ shape = (config.sampling.batch_size, 1, Nside, Nside, Nside)
 
 samples = []
 print('Sampling begins.')
-for j in tqdm(range(config.sampling.num_samples//config.sampling.batch_size)):
+for j in tqdm(
+    range(config.sampling.num_samples//config.sampling.batch_size),
+    disable=args.disable_tqdm
+):
     with torch.no_grad(), ema.average_parameters():
         x = sde.prior_sampling(shape).to(DEVICE)
         timesteps = sde.timesteps.to(DEVICE)
-        for i in tqdm(range(sde.N)):
+        for i in tqdm(range(sde.N), disable=args.disable_tqdm):
             t = timesteps[i]
             x, x_mean = one_step(x, t)
         samples.append(x_mean.detach().cpu().numpy())
     np.save(data_path + 'sample{}.npy'.format(task_id), np.array(samples))
+    print(f'Finished {j+1}th round')
+
+print('Done sampling')
 np.save(data_path + 'sample{}.npy'.format(task_id), np.array(samples))
