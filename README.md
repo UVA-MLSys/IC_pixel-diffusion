@@ -145,3 +145,6 @@ These results show that as observation noise increases, model performance—part
 </details>
 
 
+Giti Doolabi
+PhD Student, Computer Science
+University of Virginia
