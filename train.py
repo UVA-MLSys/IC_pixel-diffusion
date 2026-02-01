@@ -119,7 +119,7 @@ def train_one_epoch(
 if is_main_process:
     logging.info("💾 Loading data on all processes...")
 
-input_data = np.float32(np.load(config.data.path + 'quijote128_halo_train_100.npy')) # at z0 # originally quijote128_z0_train_1900
+input_data = np.float32(np.load(config.data.path + 'quijote128_dm_train_100.npy')) # at z0 # originally quijote128_z0_train_1900
 label_data = np.float32(np.load(config.data.path + 'quijote128_z127_train_100.npy')) # at z inf or 12.7 here # originally quijote128_z127_train_1900
 
 # normalize

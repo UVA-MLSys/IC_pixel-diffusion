@@ -1,7 +1,7 @@
 {
     "training": {
         "batch_size": 4,
-        "n_epochs": 40000,
+        "n_epochs": 400,
         "likelihood_weighting": false,
         "reduce_mean": false,
         "sde": "vesde",

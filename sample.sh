@@ -5,9 +5,11 @@
 #SBATCH --gres=gpu:a100:1
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
-#SBATCH --mem=40G
-#SBATCH --time=2:00:00
-#SBATCH --output=logs/sample_100_%j.out
+#SBATCH --mem=48G
+#SBATCH --time=1:00:00
+#SBATCH --output=logs/sample_1900_%j.out
+#SBATCH --mail-user=mi3se@virginia.edu
+#SBATCH --mail-type=END,FAIL
 
 source /etc/profile.d/modules.sh
 source ~/.bashrc
@@ -15,4 +17,5 @@ source ~/.bashrc
 module load cuda cudnn miniforge
 conda activate astroclip
 
-python sample.py --disable_tqdm --config config_halo_100.json
+# python sample.py --disable_tqdm --config config_dm_1900_2.json
+python batch_sample.py --disable_tqdm --start 1999 --end 2000

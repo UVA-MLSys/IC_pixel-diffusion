@@ -1,4 +1,4 @@
-# module load gcc openmpi
+# module load gcc openmpi miniforge
 import numpy as np
 from tqdm import tqdm
 from utils import get_config
@@ -23,6 +23,7 @@ pix_cut = 8
 fs = 10
 h = 3
 w = 4
+kmax = 1.0
 
 config_filename = str(sys.argv[1]) # config.json
 config = get_config(config_filename)
@@ -30,20 +31,20 @@ config = get_config(config_filename)
 Nside = config.data.image_size
 DEVICE = config.device
 
-data_path = os.path.join(config.model.workdir, config.model.cosmo_dir)
+data_path = 'run/cosmos_dm_1900_2/sample_1999' #  os.path.join(config.model.workdir, config.model.cosmo_dir)
 
 def pspec(x, boxsize=1000.0):
   mesh = ArrayMesh(x, BoxSize=boxsize)
-  result = FFTPower(mesh, mode='1d', kmax=1.0)
+  result = FFTPower(mesh, mode='1d', kmax=kmax)
   PS = result.power
   return PS['power'].real, PS['k']
 
 def cross_pspec(x, y, boxsize=1000.):
     meshx = ArrayMesh(x, BoxSize=boxsize)
     meshy = ArrayMesh(y, BoxSize=boxsize)
-    resultxy = FFTPower(first=meshx, mode='1d', second=meshy, kmax=1.0)
-    resultxx = FFTPower(first=meshx, mode='1d', kmax=1.0)
-    resultyy = FFTPower(first=meshy, mode='1d', kmax=1.0)
+    resultxy = FFTPower(first=meshx, mode='1d', second=meshy, kmax=kmax)
+    resultxx = FFTPower(first=meshx, mode='1d', kmax=kmax)
+    resultyy = FFTPower(first=meshy, mode='1d', kmax=kmax)
 
     PS_xy = resultxy.power['power'].real
     PS_xx = resultxx.power['power'].real
@@ -68,6 +69,9 @@ def cross_pspec(x, y, boxsize=1000.):
 def results(config, data_path):
 
   samples = np.load(os.path.join(data_path,'sample.npy')).reshape(-1,Nside,Nside,Nside)
+  for i in range(len(samples)):
+    samples[i] = (samples[i]- np.mean(samples[i]))/np.std(samples[i])
+
   observation = np.load(os.path.join(data_path,'observation.npy')).reshape(-1,Nside,Nside,Nside)
   truth = np.load(os.path.join(data_path,'truth.npy')).reshape(Nside,Nside,Nside)
 
@@ -190,7 +194,7 @@ def results(config, data_path):
 
   fig, axs = plt.subplots(3, sharex=True, sharey=False, height_ratios=[2, 1, 1])
   # Plot power spectra of truth vs generated samples
-  fig.set_size_inches((w, h*2)) 
+  fig.set_size_inches((w*2, h*2)) 
   axs[0].plot(samples_k[-1], mean_pspec, color='#82A8D1', label='Inferred')
   axs[0].fill_between(samples_k[-1], mean_pspec - 2*std_pspec, mean_pspec+2*std_pspec, alpha=0.5, color='#82A8D1')
   axs[0].plot(truth_k, truth_pspec, color='k', ls='--', lw=1, label='Truth')

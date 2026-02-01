@@ -5,11 +5,19 @@ from utils import get_config
 # === File paths ===
 
 sample_no = 1999
-# z127_path = f"./Dataset/halo_LH_128/halo_lh_{sample_no}.npy" 
-z127_path = f"./Dataset/Train_z127_from_IC_2000/df_m_z=127_sim{sample_no}.npy"
-z0_path = f"./Dataset/Train_z0_2000/{sample_no}_z0.npy"
 
 config = get_config(str(sys.argv[1])) # './config.json'
+
+z127_path = f"./Dataset/Train_z127_from_IC_2000/df_m_z=127_sim{sample_no}.npy"
+# z127_path = f"../IC-Flow-Diffusion/Dataset/Train_z127_CAMELS/z127_{sample_no:04d}.npy"
+# z0_path = f"../IC-Flow-Diffusion/Dataset/Train_z0_CAMELS/z0_{sample_no:04d}.npy"
+
+if config.data.input_type == 'halo':
+    z0_path = f"./Dataset/halo_LH_128/halo_lh_{sample_no}.npy" 
+else:
+    z0_path = f"./Dataset/Train_z0_2000/{sample_no}_z0.npy"
+
+print(f'Reading {z127_path} as the target truth and {z0_path} as the input observation')
 output_dir = os.path.join(config.model.workdir, config.model.cosmo_dir)
 
 if not os.path.exists(output_dir):

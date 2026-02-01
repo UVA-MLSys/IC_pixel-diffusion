@@ -62,15 +62,6 @@ label_data = torch.unsqueeze(label_data, dim=1)
 model = UNet3DModel(config)
 #model = DataParallel(model)
 model = model.to(DEVICE)
-
-# Define optimizer
-optimizer = torch.optim.AdamW(
-        model.parameters(),
-        lr=config.optim.lr,
-        betas=(config.optim.beta1, 0.999),
-        eps=config.optim.eps,
-        weight_decay=config.optim.weight_decay                   
-        )
 ema = ExponentialMovingAverage(model.parameters(), decay=config.model.ema_rate)
 
 sde = VESDE(config.model.sigma_min, config.model.sigma_max, config.model.num_scales, config.model.T, config.model.sampling_eps)
@@ -79,7 +70,6 @@ sde = VESDE(config.model.sigma_min, config.model.sigma_max, config.model.num_sca
 checkpoint_path = join(checkpoint_dir, 'checkpoint.pth')
 if os.path.isfile(checkpoint_path):
     loaded_state = torch.load(checkpoint_path, map_location=DEVICE)
-    optimizer.load_state_dict(loaded_state['optimizer'])
     model.load_state_dict(loaded_state['model'], strict=False)
     ema.load_state_dict(loaded_state['ema'])
     init_epoch = int(loaded_state['epoch'])
@@ -114,7 +104,14 @@ for j in tqdm(
         timesteps = sde.timesteps.to(DEVICE)
         for i in tqdm(range(sde.N), disable=args.disable_tqdm):
             t = timesteps[i]
+
+            start = time.perf_counter()
             x, x_mean = one_step(x, t)
+            times.append(time.perf_counter()-start)
+
+            filepath = os.path.join(output_dir, f'{i}.npy')
+            np.save(filepath, x_mean.detach().cpu().numpy().squeeze())
+
         samples.append(x_mean.detach().cpu().numpy())
     np.save(data_path + 'sample{}.npy'.format(task_id), np.array(samples))
     print(f'Finished {j+1}th round')

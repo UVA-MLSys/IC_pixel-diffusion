@@ -207,9 +207,8 @@ def train_one_epoch(
         
         avg_loss += loss.item()
 
+        progress_bar.set_postfix({'loss': f'{avg_loss:.4g}'})
         counter += 1
-        progress_bar.set_postfix({'loss': f'{avg_loss/counter:.4g}'})
-        
     
     return avg_loss / counter
 
@@ -336,7 +335,7 @@ if enable_ddp: cleanup_ddp()
 
 # %%
 root = config.data.path
-test_sample_no = 1999
+test_sample_no = 999
 
 z0_path = os.path.join(root, get_filepath(test_sample_no, file_type=config.data.input_type))
 z127_path =  os.path.join(root, get_filepath(test_sample_no, file_type=config.data.target_type))
