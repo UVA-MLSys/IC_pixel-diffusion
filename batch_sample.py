@@ -7,7 +7,7 @@ import torch
 from tqdm import tqdm
 from torch.utils.data import TensorDataset, DataLoader
 from torch.nn.parallel import DistributedDataParallel, DataParallel
-from utils import get_sigma_time, get_sample_time, VESDE, get_config
+from utils import get_sigma_time, get_sample_time, VESDE, get_config, get_filepath
 from model import UNet3DModel
 import matplotlib.pyplot as plt
 from torch_ema import ExponentialMovingAverage
@@ -16,6 +16,11 @@ import os
 import sys
 from os.path import join
 import argparse
+
+# 3.30 h
+# python batch_sample.py --config ./configs/standard_32.json
+
+# python batch_sample.py --config ./configs/standard_64.json
 
 def get_parser():
     parser = argparse.ArgumentParser(
@@ -38,9 +43,13 @@ args = parser.parse_args()
 # %%
 config =get_config(args.config)
 DEVICE = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
-cosmo_dir = config.model.cosmo_dir
-data_path = join(config.model.workdir, cosmo_dir)
-checkpoint_dir = join(data_path, config.model.checkpoint_dir)
+
+model_folder = join(config.model.workdir, config.model.cosmo_dir)
+checkpoint_dir = join(model_folder, config.model.checkpoint_dir)
+data_root = config.data.path
+
+input_type = config.data.input_type
+target_type = config.data.target_type
 
 # %%
 # Initialize score model
@@ -76,15 +85,11 @@ model.eval()
 for sample_no in range(args.start, args.end):
     print(f'Sampling {sample_no}')
     # z127_path = f"./Dataset/halo_LH_128/halo_lh_{sample_no}.npy" 
-    z127_path = f"./Dataset/Train_z127_from_IC_2000/df_m_z=127_sim{sample_no}.npy"
-    z0_path = f"./Dataset/Train_z0_2000/{sample_no}_z0.npy"
-
-    # z127_path = f"../IC-Flow-Diffusion/Dataset/Train_z127_CAMELS/z127_{sample_no:04d}.npy"
-    # z0_path = f"../IC-Flow-Diffusion/Dataset/Train_z0_CAMELS/z0_{sample_no:04d}.npy"
+    z127_path = os.path.join(data_root, get_filepath(sample_no, target_type)) #  f"./Dataset/Train_z127_from_IC_2000/df_m_z=127_sim{sample_no}.npy"
+    z0_path = os.path.join(data_root, get_filepath(sample_no, input_type)) # f"./Dataset/Train_z0_2000/{sample_no}_z0.npy"
 
     output_dir = os.path.join(
-        config.model.workdir, config.model.cosmo_dir,
-        'samples', str(sample_no)
+        model_folder, 'samples', str(sample_no)
     )
 
     if not os.path.exists(output_dir):
@@ -102,14 +107,8 @@ for sample_no in range(args.start, args.end):
     z127_norm = (z127 - np.mean(z127)) / np.std(z127)
     z127_norm = z127_norm[np.newaxis, ...]
 
-    # === Save as observation and truth ===
-    np.save(os.path.join(output_dir, "observation.npy"), z0_noisy)
     np.save(os.path.join(output_dir, "truth.npy"), z127_norm)
 
-    print(f"✅ Saved observation and truth to {output_dir}")
-
-
-    # %%
     enable_tqdm = not args.disable_tqdm
     Nside = config.data.image_size
     #DEVICE = config.device
@@ -117,17 +116,8 @@ for sample_no in range(args.start, args.end):
     sigma_time = get_sigma_time(config.model.sigma_min, config.model.sigma_max)
     sample_time = get_sample_time(config.model.sampling_eps, config.model.T)
 
-
-    # %%
-    input_data = np.float32(np.load(join(output_dir, 'observation.npy')))
-    input_data.mean(), input_data.max(), input_data.min()
-
-    # %%
-    # Build pytorch dataloaders
-    input_data = np.float32(np.load(join(output_dir, 'observation.npy')))
-    print("Loaded shape:", input_data.shape)
     label_data = np.float32(np.load(join(output_dir, 'truth.npy')))
-    input_data = torch.from_numpy(input_data).to(DEVICE)
+    input_data = torch.from_numpy(np.float32(z0_noisy)).to(DEVICE)
     label_data = torch.from_numpy(label_data).to(DEVICE)
     input_data = torch.unsqueeze(input_data, dim=1)
     label_data = torch.unsqueeze(label_data, dim=1)
@@ -140,19 +130,10 @@ for sample_no in range(args.start, args.end):
         x, x_mean = sde.update_fn(x, t_vec, model_output=model_output)
         return x, x_mean
 
-    print("input_data shape before tiling:", input_data.shape)
-
-
     input_data = torch.tile(input_data, dims=(config.sampling.batch_size, 1, 1, 1, 1))
     shape = (config.sampling.batch_size, 1, Nside, Nside, Nside)
 
-    import time
-    intermediate_dir = os.path.join(output_dir, 'intermediates')
-    if not os.path.exists(intermediate_dir):
-        os.makedirs(intermediate_dir, exist_ok=True)
-
     samples = []
-    print('Sampling begins.')
     for j in tqdm(
         range(config.sampling.num_samples//config.sampling.batch_size),
         disable=args.disable_tqdm
@@ -161,26 +142,13 @@ for sample_no in range(args.start, args.end):
             x = sde.prior_sampling(shape).to(DEVICE)
             timesteps = sde.timesteps.to(DEVICE)
 
-            times = []
-            start = time.perf_counter()
-
             for i in range(sde.N):
                 t = timesteps[i]
-
                 x, x_mean = one_step(x, t)
-                if j==1: 
-                    times.append(time.perf_counter()-start)
-
-                filepath = os.path.join(intermediate_dir, f'{i}.npy')
-                if j==1: np.save(filepath, x_mean.detach().cpu().numpy().squeeze())
 
             samples.append(x_mean.detach().cpu().numpy())
 
-        if j==1: np.save(os.path.join(intermediate_dir, 'times.npy'), np.array(times))
         np.save(os.path.join(output_dir, 'sample.npy'), np.array(samples))
-        print(f'Finished {j+1}th round')
-
-    print('Done sampling')
 
     samples = np.array(samples).reshape(-1, Nside, Nside, Nside)
     np.save(os.path.join(output_dir, 'sample.npy'), samples)

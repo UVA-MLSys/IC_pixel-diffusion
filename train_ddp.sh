@@ -47,5 +47,6 @@ torchrun \
   --master_port ${MASTER_PORT} \
    train_complete.py --disable_tqdm --config ./configs/config_camels.json
 
-
 echo "Training completed at: $(date)"
+
+# python train_complete.py --num_workers 0 --config ./configs/standard_32.json --disable_ddp

@@ -79,8 +79,22 @@ def isotropic_power_spectrum(x: Tensor, spatial: int = 2) -> Tuple[Tensor, Tenso
     return p_iso[..., 1:], edges[1:]
 
 class CosmologyMetrics:
-    """Compute cosmology-specific metrics for dark matter density fields."""
+    """
+    Compute cosmology-specific metrics for dark matter density fields.
     
+    USAGE:
+    - For P(k) and T(k): Pass PHYSICAL density fields δ = ρ/ρ̄ - 1
+    - For C(k): Any consistent representation (it's scale-invariant)
+    - For VRMSE: Pass GLOBALLY normalized fields
+
+    Parameters
+    ----------
+    boxsize : float
+        Box size in Mpc/h
+    kmax : float
+        Maximum k value for binning
+
+    """
     def __init__(
         self, boxsize: float = 1000.0, kmax=1.0
     ):
@@ -94,18 +108,52 @@ class CosmologyMetrics:
         except:
             self.use_nbodykit = False
             print(f'Nbodykit is not available. Using Pylians')
+            
+    def _normalize_global(self, field: np.ndarray) -> np.ndarray:
+        """
+        Apply global normalization if enabled.
+        
+        IMPORTANT: This is NOT local normalization (per-field).
+        Global mean/std are computed ONCE from entire training set.
+        """
+        if self.use_global_norm:
+            return (field - self.global_mean) / self.global_std
+        return field
         
     def power_spectrum(self, field: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Compute 1D power spectrum P(k)."""
+        """
+        Compute 1D power spectrum P(k).
+
+        CRITICAL: Uses PHYSICAL or GLOBALLY normalized fields.
+        NO local normalization applied (this would force all P(k) to same amplitude).
+
+        Parameters
+        ----------
+        field : np.ndarray
+            Physical density field δ or globally normalized field
+
+        Returns
+        -------
+        PS : np.ndarray
+            Power spectrum values
+        k : np.ndarray
+            Wave numbers
+        """
         field = field.squeeze()
-        field = (field - np.mean(field))/np.std(field)
+        # NO NORMALIZATION - use physical field as-is
         
         if self.use_nbodykit:
             from nbodykit.lab import ArrayMesh, FFTPower
             mesh = ArrayMesh(field, BoxSize=self.boxsize)
             result = FFTPower(mesh, mode='1d', kmax=self.kmax)
             PS = result.power
-            return PS['power'].real[1:], PS['k'][1:]  # Skip k=0
+
+            ps, k = PS['power'].real, PS['k']
+            if self.kmax is None:
+                return ps[1:], k[1:]  # Skip k=0
+            else:
+                mask = (k > 0) & (k <= self.kmax)
+                return ps[mask], k[mask]
         else:
             delta = field.astype(np.float32)
     
@@ -118,17 +166,38 @@ class CosmologyMetrics:
             if self.kmax is None:
                 return PS, k 
             else:
-                mask = [i>0 and i <= self.kmax for i in k]
+                mask = (k > 0) & (k <= self.kmax)
                 return PS[mask], k[mask]
-        
     
     def cross_correlation(self, field1: np.ndarray, field2: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Compute cross-correlation C(k) = P_12(k) / sqrt(P_1(k) * P_2(k))."""
+        """
+        Compute cross-correlation C(k) = P_12(k) / sqrt(P_1(k) * P_2(k)).
+        
+        NOTE: Cross-correlation is a correlation coefficient, so it's invariant
+        to scaling. Both physical fields and globally normalized fields work.
+        We optionally apply global normalization for numerical stability.
+        
+        Parameters
+        ----------
+        field1, field2 : np.ndarray
+            Physical density fields δ or globally normalized fields
+        
+        Returns
+        -------
+        C_k : np.ndarray
+            Cross-correlation coefficient
+        k : np.ndarray
+            Wave numbers
+        """
         field1 = field1.squeeze()
         field2 = field2.squeeze()
         
-        field1 = (field1 - np.mean(field1))/np.std(field1)
-        field2 = (field2 - np.mean(field2))/np.std(field2)
+        # NO NORMALIZATION - C(k) is scale-invariant
+        # or
+        # Apply global normalization if configured
+        # This is for numerical stability, not physics requirement
+        # field1 = self._normalize_global(field1)
+        # field2 = self._normalize_global(field2)
         
         if self.use_nbodykit:
             from nbodykit.lab import ArrayMesh, FFTPower
@@ -146,7 +215,7 @@ class CosmologyMetrics:
             
             # Avoid division by zero
             denominator = np.sqrt(PS_11 * PS_22)
-            denominator[denominator == 0] = 1e-10
+            denominator = np.clip(denominator, 1e-12, None)
             
             C_k = PS_12 / denominator
             return C_k[1:], k[1:]  # Skip k=0
@@ -174,22 +243,46 @@ class CosmologyMetrics:
             
             # Calculate Cross-Correlation Coefficient
             # Avoid division by zero if necessary
-            PS = PS_xy / np.sqrt(PS_xx * PS_yy)
+            C_k = PS_xy / np.sqrt(PS_xx * PS_yy + 1e-12)
             
             
             if self.kmax is None:
-                return PS, k
+                return C_k, k
             else:
-                mask = [i>0 and i <= self.kmax for i in k]
-                return PS[mask], k[mask]
+                mask = (k > 0) & (k <= self.kmax)
+                return C_k[mask], k[mask]
     
-    def transfer_function(self, field: np.ndarray, truth: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
-        """Compute transfer function T(k) = sqrt(P_sample(k) / P_truth(k))."""
+    def transfer_function(
+        self, field: np.ndarray, truth: np.ndarray
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Compute transfer function T(k) = sqrt(P_sample(k) / P_truth(k)).
+        
+        CRITICAL: Must use same normalization as power_spectrum().
+        If you use physical fields here, P(k) will be physical.
+        T(k) measures whether model preserves mode amplitudes correctly.
+        
+        With local normalization, T(k) ≈ 1.0 always (meaningless).
+        
+        Parameters
+        ----------
+        field : np.ndarray
+            Predicted field (physical δ or globally normalized)
+        truth : np.ndarray  
+            Ground truth field (same normalization as field)
+        
+        Returns
+        -------
+        T_k : np.ndarray
+            Transfer function (should be ~1.0 for good reconstruction)
+        k : np.ndarray
+            Wave numbers
+        """
         P_sample, k_sample = self.power_spectrum(field)
         P_truth, k_truth = self.power_spectrum(truth)
         
         # Avoid division by zero
-        P_truth_safe = np.where(P_truth > 0, P_truth, 1e-10)
+        P_truth_safe = np.clip(P_truth, 1e-12, None)
         T_k = np.sqrt(P_sample / P_truth_safe)
         return T_k, k_sample
     
@@ -203,9 +296,27 @@ class CosmologyMetrics:
     ) -> Dict[str, float]:
         """
         Power Spectrum RMSE as used in Ohana et al. (2023).
-
-        u: ground-truth field, shape (..., N, N, N)
-        v: generated field, same shape
+        
+        This metric is OK with global normalization because it compares
+        ratios of power spectra, not absolute values.
+        
+        Parameters
+        ----------
+        u : torch.Tensor
+            Ground truth field
+        v : torch.Tensor
+            Generated field
+        spatial : int
+            Number of spatial dimensions
+        n_bands : int
+            Number of frequency bands
+        eps : float
+            Numerical stability parameter
+        
+        Returns
+        -------
+        dict
+            RMSE scores for low/mid/high frequency bands
         """
 
         # Isotropic power spectra
@@ -235,98 +346,102 @@ class CosmologyMetrics:
 
         return rmse
 
-
 class ValidationMetrics:
-    """Comprehensive validation metrics for posterior sampling."""
+    """
+    Validation metrics for cosmological density field reconstruction.
+    
+    USAGE:
+    ------
+    metrics = ValidationMetrics(boxsize=1000.0)
+    
+    # For P(k), T(k): Use physical density fields δ = ρ/ρ̄ - 1
+    samples_delta = load_physical_samples()
+    truth_delta = load_physical_truth()
+    
+    # For VRMSE: Use globally normalized fields
+    samples_global = (samples - global_mean) / global_std
+    truth_global = (truth - global_mean) / global_std
+    
+    results = metrics.compute_all_metrics(samples_delta, truth_delta, 
+                                         samples_global, truth_global)
+    """
     
     def __init__(
-        self, boxsize: float = 1000.0, kmax=None
+        self, 
+        boxsize: float = 1000.0, 
+        kmax: float = 0.4
     ):
-        self.cosmo_metrics = CosmologyMetrics(boxsize, kmax=kmax)
+        self.cosmo_metrics = CosmologyMetrics(
+            boxsize=boxsize,
+            kmax=kmax
+        )
         self.kmax = kmax
         
-    def power_spectrum_accuracy(self, samples: np.ndarray, truth: np.ndarray) -> Dict[str, float]:
-        """
-        Compute power spectrum relative error.
-        
-        Args:
-            samples: (n_samples, H, W, D)
-            truth: (H, W, D)
-        """
-        P_truth, k_truth = self.cosmo_metrics.power_spectrum(truth)
-        
-        # Compute for all samples
-        relative_errors = []
-        for sample in samples:
-            P_sample, k_sample = self.cosmo_metrics.power_spectrum(sample)
-            
-            rel_error = np.abs(P_sample - P_truth) / P_truth
-            relative_errors.append(np.mean(rel_error))
-        
-        return {
-            'mean': float(np.mean(relative_errors)),
-            'std': float(np.std(relative_errors)),
-            'max': float(np.max(relative_errors)),
-            'score': float(1.0 - np.mean(relative_errors))  # Convert to 0-1 score
-        }
-    
-    def cross_correlation_score(self, samples: np.ndarray, truth: np.ndarray) -> Dict[str, float]:
+    def cross_correlation_score(
+        self, 
+        samples: np.ndarray, 
+        truth: np.ndarray
+    ) -> Dict[str, float]:
         """
         Compute cross-correlation C(k) between samples and truth.
         Higher C(k) means better reconstruction.
+        
+        Expected range: [0, 1], with 1 being perfect correlation.
         """
         cross_corrs = []
         for sample in samples:
             C_k, k = self.cosmo_metrics.cross_correlation(sample, truth)
-            
-            # Average cross-correlation across all k
-            cross_corrs.append(np.mean(C_k))
+            cross_corrs.append(np.nanmean(C_k))
 
         return {
-            'mean': float(np.mean(cross_corrs)),
-            'std': float(np.std(cross_corrs)),
-            'min': float(np.min(cross_corrs)),
-            'score': float(np.mean(cross_corrs))  # Already in [0, 1] range
+            'mean': float(np.nanmean(cross_corrs)),
+            'std': float(np.nanstd(cross_corrs)),
+            'score': float(np.nanmean(cross_corrs))
         }
     
-    def transfer_function_accuracy(self, samples: np.ndarray, truth: np.ndarray) -> Dict[str, float]:
+    def transfer_function_accuracy(
+        self, 
+        samples: np.ndarray, 
+        truth: np.ndarray
+    ) -> Dict[str, float]:
         """
         Compute transfer function T(k). Should be ~1.0 for perfect reconstruction.
+        
+        CRITICAL: This metric is ONLY meaningful with physical or globally
+        normalized fields. With local normalization, T(k) ≈ 1.0 always.
+        
+        Expected behavior:
+        - Good model: mean(|T(k) - 1.0|) < 0.1
+        - Bad model: mean(|T(k) - 1.0|) >> 0.1
         """
         transfer_deviations = []
         for sample in samples:
             T_k, k = self.cosmo_metrics.transfer_function(sample, truth)
-            
-            # Measure deviation from ideal T(k) = 1
-            deviation = np.mean(np.abs(T_k - 1.0))
+            deviation = np.nanmean(np.abs(T_k - 1.0))
             transfer_deviations.append(deviation)
         
         return {
-            'mean_deviation': float(np.mean(transfer_deviations)),
-            'std': float(np.std(transfer_deviations)),
-            'score': float(1.0 - np.mean(transfer_deviations))
-        }
-    
-    def pearson_correlation(self, samples: np.ndarray, truth: np.ndarray) -> Dict[str, float]:
-        """Compute Pearson correlation coefficient between samples and truth."""
-        correlations = []
-        for sample in samples:
-            corr = np.corrcoef(sample.flatten(), truth.flatten())[0, 1]
-            correlations.append(corr)
-        
-        return {
-            'mean': float(np.mean(correlations)),
-            'std': float(np.std(correlations)),
-            'score': float(np.mean(correlations))  # Already in [-1, 1], but should be positive
+            'mean': float(np.nanmean(transfer_deviations)),
+            'std': float(np.nanstd(transfer_deviations)),
+            'score': float(1.0 - np.clip(np.nanmean(transfer_deviations), 0, 1))
         }
         
-    def power_spectrum_rmse(self, samples: np.ndarray, truth: np.ndarray) -> Dict[str, Dict]:
+    def power_spectrum_rmse(
+        self, samples: np.ndarray, truth: np.ndarray
+    ) -> Dict[str, Dict]:
+        """
+        Compute power spectrum RMSE in different frequency bands.
+        Uses logarithmic bands as in Ohana et al. (2023).
+        """
         
         bands = ['low', 'mid', 'high']
         results = {band: [] for band in bands}
-        scores = []
+      
         for sample in samples:
-            score = self.cosmo_metrics.power_spectrum_rmse_single(truth, sample)
+            score = self.cosmo_metrics.power_spectrum_rmse_single(
+                torch.from_numpy(truth), 
+                torch.from_numpy(sample)
+            )
             for band in bands:
                 results[band].append(score[band])
         
@@ -344,136 +459,84 @@ class ValidationMetrics:
         self, samples: np.ndarray, truth: np.ndarray, epsilon=1e-6
     ) -> Dict[str, float]:
         """
-        Computes Variance-Normalized RMSE (VRMSE) for a set of samples against a single truth.
+        Computes Variance-Normalized RMSE (VRMSE).
         
-        Formula: VRMSE = sqrt( MSE(u, v) / (Var(u) + epsilon) )
+        Formula: VRMSE = sqrt(MSE(u, v) / (Var(u) + epsilon))
         
-        Args:
-            samples (list of np.ndarray or np.ndarray): 
-                The predicted fields (v). Can be a list of 3D arrays or a 4D array [N, D, H, W].
-            truth (np.ndarray): 
-                The single ground truth field (u). Shape [D, H, W].
-            epsilon (float): 
-                Numerical stability term (default 10^-6).
-                
-        Returns:
-            np.ndarray: An array of VRMSE scores (one per sample).
+        CRITICAL: Requires GLOBALLY normalized fields where Var(truth) ≈ 1.
+        
+        Parameters
+        ----------
+        samples : np.ndarray
+            Predicted fields (globally normalized), shape (n_samples, D, H, W)
+        truth : np.ndarray
+            Ground truth field (globally normalized), shape (D, H, W)
+        epsilon : float
+            Numerical stability (default 1e-6)
+        
+        Returns
+        -------
+        dict
+            VRMSE statistics across samples
         """
         
-        # 1. Pre-compute Truth Statistics (Denominator)
-        # This is constant for all samples, so we compute it once.
-        # Variance = <(u - <u>)^2>
         truth_mean = np.mean(truth)
         truth_var = np.mean((truth - truth_mean) ** 2)
-        
         denominator = truth_var + epsilon
         
-        # 2. Compute VRMSE for each sample
         scores = []
-        
-        # Iterate to save memory (avoid creating a massive difference tensor)
-        # If samples is a numpy array [N, D, H, W], iterating yields [D, H, W] slices
         for v in samples:
-            # MSE = <(u - v)^2>
-            # We assume 'truth' and 'v' have the same shape
             mse = np.mean((truth - v) ** 2)
-            
-            # VRMSE calculation
             vrmse = np.sqrt(mse / denominator)
             scores.append(vrmse)
-            
+        
         return {
             'mean': float(np.mean(scores)),
             'std': float(np.std(scores)),
             'score': float(np.mean(scores))
         }
-            
-    
-    def calibration_score(self, samples: np.ndarray, truth: np.ndarray) -> Dict[str, float]:
+        
+    def compute_all_metrics(
+        self, 
+        samples_physical: np.ndarray, 
+        truth_physical: np.ndarray,
+        samples_global_norm: Optional[np.ndarray] = None,
+        truth_global_norm: Optional[np.ndarray] = None
+    ) -> Dict[str, Dict]:
         """
-        Check if posterior variance correctly captures uncertainty.
-        Variance should correlate with squared error.
+        Compute all validation metrics for a single example.
+        
+        Parameters
+        ----------
+        samples_physical : np.ndarray
+            Predicted samples in physical units δ, shape (n_samples, D, H, W)
+            Used for: P(k), T(k), C(k)
+        truth_physical : np.ndarray
+            Ground truth in physical units δ, shape (D, H, W)
+            Used for: P(k), T(k), C(k)
+        samples_global_norm : np.ndarray, optional
+            Globally normalized samples for VRMSE
+            If None, will use physical samples (may give different scale)
+        truth_global_norm : np.ndarray, optional
+            Globally normalized truth for VRMSE
+            If None, will use physical truth
+        
+        Returns
+        -------
+        dict
+            All metric results
         """
-        sample_mean = samples.mean(axis=0)
-        sample_var = samples.var(axis=0)
-        
-        truth = truth.squeeze()
-        squared_error = (sample_mean - truth) ** 2
-        
-        # Correlation between predicted variance and actual error
-        valid_mask = sample_var > 0  # Avoid zeros
-        calibration_corr = np.corrcoef(
-            sample_var[valid_mask].flatten(),
-            squared_error[valid_mask].flatten()
-        )[0, 1]
-        
-        # Also check if normalized residuals are ~N(0,1)
-        normalized_residuals = (truth - sample_mean) / (np.sqrt(sample_var) + 1e-10)
-        ks_statistic, ks_pvalue = stats.kstest(
-            normalized_residuals.flatten(),
-            'norm'
-        )
+        # Use globally normalized fields for VRMSE if provided
+        if samples_global_norm is None:
+            samples_global_norm = samples_physical
+        if truth_global_norm is None:
+            truth_global_norm = truth_physical
         
         return {
-            'variance_error_corr': float(calibration_corr),
-            'ks_statistic': float(ks_statistic),
-            'ks_pvalue': float(ks_pvalue),
-            'score': float(calibration_corr)  # Use correlation as score
-        }
-    
-    def coverage_score(self, samples: np.ndarray, truth: np.ndarray, alpha: float = 0.95) -> Dict[str, float]:
-        """
-        Check if truth falls within predicted confidence intervals.
-        For 95% CI, ~95% of voxels should contain truth.
-        """
-        lower = np.quantile(samples, (1 - alpha) / 2, axis=0)
-        upper = np.quantile(samples, 1 - (1 - alpha) / 2, axis=0)
-        
-        coverage = np.mean((truth >= lower) & (truth <= upper))
-        
-        # Deviation from expected coverage
-        coverage_error = np.abs(coverage - alpha)
-        
-        return {
-            'coverage': float(coverage),
-            'expected': float(alpha),
-            'error': float(coverage_error),
-            'score': float(1.0 - coverage_error)  # Penalize deviation
-        }
-    
-    def diversity_score(self, samples: np.ndarray) -> Dict[str, float]:
-        """
-        Ensure samples are diverse (not mode collapse).
-        Compute pairwise L2 distances between samples.
-        """
-        n_samples = len(samples)
-        pairwise_dists = []
-        
-        for i in range(n_samples):
-            for j in range(i + 1, n_samples):
-                dist = np.mean((samples[i] - samples[j]) ** 2)
-                pairwise_dists.append(dist)
-        
-        mean_diversity = np.mean(pairwise_dists)
-        
-        return {
-            'mean_pairwise_distance': float(mean_diversity),
-            'std': float(np.std(pairwise_dists)),
-            'score': float(mean_diversity)  # Higher is more diverse
-        }
-    
-    def compute_all_metrics(self, samples: np.ndarray, truth: np.ndarray) -> Dict[str, Dict]:
-        """Compute all validation metrics for a single example."""
-        return {
-            'power_spectrum': self.power_spectrum_accuracy(samples, truth),
-            'cross_correlation': self.cross_correlation_score(samples, truth),
-            'transfer_function': self.transfer_function_accuracy(samples, truth),
-            'pearson': self.pearson_correlation(samples, truth),
-            'calibration': self.calibration_score(samples, truth),
-            'coverage': self.coverage_score(samples, truth),
-            'diversity': self.diversity_score(samples),
-            'vrmse': self.vrmse_score(samples, truth),
-            'power_spectrum_rmse': self.power_spectrum_rmse(samples, truth)
+            'cross_correlation': self.cross_correlation_score(samples_physical, truth_physical),
+            'transfer_function': self.transfer_function_accuracy(samples_physical, truth_physical),
+            'vrmse': self.vrmse_score(samples_global_norm, truth_global_norm),
+            'power_spectrum_rmse': self.power_spectrum_rmse(samples_physical, truth_physical)
         }
 
 
@@ -481,90 +544,136 @@ class ValidationSuite:
     """Run validation across entire validation dataset."""
     
     def __init__(
-        self, boxsize: float = 1000.0, kmax=None
+        self, boxsize: float = 1000.0,
+        kmax: float = 0.4
     ):
         self.metrics_computer = ValidationMetrics(
-            boxsize, kmax=kmax
+            boxsize=boxsize,
+            kmax=kmax
         )
-        
-    def evaluate_dataset(
-        self,
-        val_examples: List[Tuple[np.ndarray, np.ndarray, np.ndarray]],
-        weights: Dict[str, float] = None
-    ) -> Dict:
+        self._reset_accumulators()
+
+    def _reset_accumulators(self):
+        """Reset rolling statistics accumulators."""
+        self.n = 0
+        self.running_stats = {}
+        self.per_example_results = []
+
+    def _update_rolling_stats(self, metric_value: float, metric_name: str):
         """
-        Evaluate entire validation dataset.
+        Update rolling statistics using Welford's online algorithm.
         
-        Args:
-            val_examples: List of (observation, samples, truth) tuples
-                - observation: (H, W, D)
-                - samples: (n_samples, H, W, D)  # e.g., 10 samples
-                - truth: (H, W, D)
-            weights: Weights for computing composite score
+        This computes mean and variance incrementally without storing all values.
         
-        Returns:
-            Dictionary with aggregate metrics and per-example results
+        Parameters
+        ----------
+        metric_value : float
+            New metric value to add
+        metric_name : str
+            Name of the metric
         """
-        if weights is None:
-            weights = {
-                'power_spectrum': 0.25,
-                'cross_correlation': 0.20,
-                'transfer_function': 0.15,
-                'pearson': 0.10,
-                'calibration': 0.05,
-                'coverage': 0.10,
-                'diversity': 0.05,
-                'vrmse': 0.10
+        if metric_name not in self.running_stats:
+            self.running_stats[metric_name] = {
+                'n': 0,
+                'mean': 0.0,
+                'M2': 0.0,  # Sum of squared differences from mean
+                'values': []  # Store only for median calculation
             }
         
-        all_results = []
+        stats = self.running_stats[metric_name]
+        stats['n'] += 1
         
-        print(f"Evaluating {len(val_examples)} validation examples...")
-        for idx, (observation, samples, truth) in enumerate(tqdm(val_examples)):
-            # Compute all metrics for this example
-            example_metrics = self.metrics_computer.compute_all_metrics(samples, truth)
-            all_results.append(example_metrics)
+        # Welford's algorithm for online mean and variance
+        delta = metric_value - stats['mean']
+        stats['mean'] += delta / stats['n']
+        delta2 = metric_value - stats['mean']
+        stats['M2'] += delta * delta2
         
-        # Aggregate across all examples
-        aggregate_metrics = self._aggregate_results(all_results, weights)
+        # Store value for median (we need to keep these, but they're just scalars)
+        stats['values'].append(metric_value)
+
+    def add_example(
+        self,
+        samples_physical: np.ndarray,
+        truth_physical: np.ndarray,
+        samples_global_norm: Optional[np.ndarray] = None,
+        truth_global_norm: Optional[np.ndarray] = None,
+        save_per_example: bool = False
+    ):
+        """
+        Add a single validation example and update rolling statistics.
         
-        return {
-            'aggregate_metrics': aggregate_metrics,
-            'per_example_results': all_results,
-            'weights': weights
-        }
+        This method is memory-efficient as it processes one example at a time
+        and only keeps running statistics, not all samples.
+        
+        Parameters
+        ----------
+        samples_physical : np.ndarray
+            Physical density fields for this example
+        truth_physical : np.ndarray
+            Ground truth physical field
+        samples_global_norm : np.ndarray, optional
+            Globally normalized samples for VRMSE
+        truth_global_norm : np.ndarray, optional
+            Globally normalized truth for VRMSE
+        save_per_example : bool
+            If True, save individual example results (uses more memory)
+        """
+        # Compute metrics for this example
+        example_metrics = self.metrics_computer.compute_all_metrics(
+            samples_physical, truth_physical,
+            samples_global_norm, truth_global_norm
+        )
+        
+        # Update rolling statistics for each metric
+        for metric_name, metric_dict in example_metrics.items():
+            if 'score' in metric_dict:
+                # Simple metric with single score
+                full_name = metric_name
+                self._update_rolling_stats(metric_dict['score'], full_name)
+            else:
+                # Nested metric (like power_spectrum_rmse)
+                for sub_metric_name, sub_dict in metric_dict.items():
+                    full_name = f"{metric_name}_{sub_metric_name}"
+                    self._update_rolling_stats(sub_dict['score'], full_name)
+        
+        # Optionally save individual results
+        if save_per_example:
+            self.per_example_results.append(example_metrics)
+        
+        self.n += 1
+
+    def _get_current_stats(self) -> Dict[str, float]:
+        """Get current statistics (for progress bar updates)."""
+        stats = {}
+        for metric_name in ['cross_correlation', 'transfer_function', 'vrmse']:
+            if metric_name in self.running_stats:
+                stats[metric_name] = self.running_stats[metric_name]['mean']
+        return stats
     
-    def _aggregate_results(self, all_results: List[Dict], weights: Dict[str, float]) -> Dict:
-        """Aggregate results across all validation examples."""
+    def _finalize_stats(self) -> Dict:
+        """Finalize and return aggregate statistics."""
         aggregate_metrics = {}
         
-        # Aggregate each metric
-        for metric_name in all_results[0].keys():
-            if 'score' in all_results[0][metric_name]:
-                scores = []
-                for result in all_results:
-                    scores.append(result[metric_name]['score'])
-                
-                aggregate_metrics[metric_name] = {
-                    'mean': float(np.mean(scores)),
-                    'std': float(np.std(scores)),
-                    'min': float(np.min(scores)),
-                    'max': float(np.max(scores)),
-                    'median': float(np.median(scores))
-                }
+        for metric_name, stats in self.running_stats.items():
+            n = stats['n']
+            mean = stats['mean']
+            
+            # Compute standard deviation from M2
+            if n > 1:
+                variance = stats['M2'] / (n - 1)
+                std = np.sqrt(variance)
             else:
-                for sub_metric_name in all_results[0][metric_name].keys():
-                    scores = []
-                    for result in all_results:
-                        scores.append(result[metric_name][sub_metric_name]['score'])
-                    
-                    aggregate_metrics[metric_name+'_'+sub_metric_name] = {
-                        'mean': float(np.mean(scores)),
-                        'std': float(np.std(scores)),
-                        'min': float(np.min(scores)),
-                        'max': float(np.max(scores)),
-                        'median': float(np.median(scores))
-                    }
+                std = 0.0
+            
+            # Compute median from stored values
+            median = float(np.median(stats['values']))
+            
+            aggregate_metrics[metric_name] = {
+                'mean': float(mean),
+                'std': float(std),
+                'median': median
+            }
         
         return aggregate_metrics
     
@@ -583,11 +692,9 @@ class ValidationSuite:
         print("\nDETAILED METRICS:")
         print("-" * 60)
         
-        metrics = results['aggregate_metrics']
-        for metric_name, values in metrics.items():
+        for metric_name, values in results.items():
             print(f"\n{metric_name.upper().replace('_', ' ')}:")
             print(f"  Mean:   {values['mean']:.4f} ± {values['std']:.4f}")
-            print(f"  Range:  [{values['min']:.4f}, {values['max']:.4f}]")
             print(f"  Median: {values['median']:.4f}")
         
         print("\n" + "="*60)

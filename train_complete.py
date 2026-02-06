@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from torch.utils.data.distributed import DistributedSampler
-from utils import get_sigma_time, get_sample_time, get_config
+from utils import get_sigma_time, get_sample_time, get_config, get_filepath
 from model import UNet3DModel
 # torch.backends.cudnn.benchmark = True
 import os
@@ -93,26 +93,6 @@ if is_main_process:
 
 def list_files(directory, ext='h5'):
     return [str(file) for file in Path(directory).rglob(f"*.{ext}")]
-
-def get_filepath(sample_no, file_type):
-    if file_type == 'z0':
-        return f"Train_z0_2000/{sample_no}_z0.npy"
-    elif file_type == 'z127':
-        return f"Train_z127_from_IC_2000/df_m_z=127_sim{sample_no}.npy"
-    elif file_type == 'halo':
-        return f"halo_LH_128/halo_lh_{sample_no:04d}.npy"
-    elif file_type == 'recon':
-        return f"Recon_z127_2000/{sample_no}.npy"
-    elif file_type == 'latent_z0':
-        return f"Latent_z0/{sample_no}.npy"
-    elif file_type == 'latent_z127':
-        return f"Latent_z127/{sample_no}.npy"
-    elif file_type == 'camels_z0':
-        return f"Train_z0_CAMELS/z0_{sample_no:04d}.npy"
-    elif file_type == 'camels_z127':
-        return f"Train_z127_CAMELS/z127_{sample_no:04d}.npy"
-    else:
-        raise ValueError(f"Unknown file type: {file_type}")
 
 class SimulationDataset(Dataset):
     def __init__(
@@ -330,32 +310,3 @@ if is_main_process:
     logging.info("🎉 Training complete.")
 
 if enable_ddp: cleanup_ddp()
-
-# %% [markdown]
-# # Make Observation
-
-# %%
-root = config.data.path
-test_sample_no = 1999
-
-z0_path = os.path.join(root, get_filepath(test_sample_no, file_type=config.data.input_type))
-z127_path =  os.path.join(root, get_filepath(test_sample_no, file_type=config.data.target_type))
-
-# %%
-# === Load z=0 and add Gaussian noise ===
-N = config.data.image_size
-z0 = np.load(z0_path).reshape(N, N, N)
-noise_sigma = config.data.noise_sigma
-z0_noisy = z0 + noise_sigma * np.random.normal(size=z0.shape)
-z0_noisy = z0_noisy[np.newaxis, ...]  # shape: (1, 128, 128, 128)
-
-# === Load z=127 and normalize ===
-z127 = np.load(z127_path).reshape(N, N, N)
-z127_norm = (z127 - np.mean(z127)) / np.std(z127)
-z127_norm = z127_norm[np.newaxis, ...]
-
-# === Save as observation and truth ===
-np.save(os.path.join(output_dir, "observation.npy"), z0_noisy)
-np.save(os.path.join(output_dir, "truth.npy"), z127_norm)
-
-print(f"✅ Saved observation and truth to {output_dir}")

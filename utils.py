@@ -86,3 +86,74 @@ class VESDE():
     return x, x_mean
 
 
+def get_filepath(sample_no, file_type):
+    if file_type == 'z0':
+        return f"Train_z0_2000/{sample_no}_z0.npy"
+    elif file_type == 'z127':
+        return f"Train_z127_from_IC_2000/df_m_z=127_sim{sample_no}.npy"
+    elif file_type == 'halo':
+        return f"halo_LH_128/halo_lh_{sample_no:04d}.npy"
+    elif file_type == 'recon':
+        return f"Recon_z127_2000/{sample_no}.npy"
+    elif file_type == 'latent_z0':
+        return f"Latent_z0/{sample_no}.npy"
+    elif file_type == 'latent_z127':
+        return f"Latent_z127/{sample_no}.npy"
+    elif file_type == 'camels_z0':
+        return f"Train_z0_CAMELS/z0_{sample_no:04d}.npy"
+    elif file_type == 'camels_z127':
+        return f"Train_z127_CAMELS/z127_{sample_no:04d}.npy"
+    elif file_type == 'quijote_z0_32':
+        return f'Quijote_processed/Z0_32/{sample_no}.npy'
+    elif file_type == 'quijote_z0_64':
+        return f'Quijote_processed/Z0_64/{sample_no}.npy'
+    elif file_type == 'quijote_ic_32':
+        return f'Quijote_processed/IC_32/{sample_no}.npy'
+    elif file_type == 'quijote_ic_64':
+        return f'Quijote_processed/IC_64/{sample_no}.npy'
+    elif file_type == 'lc_ic_32':
+        return f'latin_hypercube_LC_processed/IC_32/{sample_no}.npy'
+    elif file_type == 'lc_ic_64':
+        return f'latin_hypercube_LC_processed/IC_64/{sample_no}.npy'
+    elif file_type == 'lc_ic_128':
+        return f'latin_hypercube_LC_processed/IC_128/{sample_no}.npy'
+    elif file_type == 'lc_z0_32':
+        return f'latin_hypercube_LC_processed/Z0_32/{sample_no}.npy'
+    elif file_type == 'lc_z0_64':
+        return f'latin_hypercube_LC_processed/Z0_64/{sample_no}.npy'
+    elif file_type == 'lc_z0_128':
+        return f'latin_hypercube_LC_processed/Z0_128/{sample_no}.npy'
+    elif file_type == 'bsq_ic_32':
+        return f'BSQ_Processed/IC_32/{sample_no}.npy'
+    elif file_type == 'bsq_ic_64':
+        return f'BSQ_Processed/IC_64/{sample_no}.npy'
+    elif file_type == 'bsq_ic_128':
+        return f'BSQ_Processed/IC_128/{sample_no}.npy'
+    elif file_type == 'bsq_z0_32':
+        return f'BSQ_Processed/Z0_32/{sample_no}.npy'
+    elif file_type == 'bsq_z0_64':
+        return f'BSQ_Processed/Z0_64/{sample_no}.npy'
+    elif file_type == 'bsq_z0_128':
+        return f'BSQ_Processed/Z0_128/{sample_no}.npy'
+    else:
+        raise ValueError(f"Unknown file type: {file_type}")
+
+
+stats_dict = {
+    'z0': [-0.1235, 0.3096],
+    'z127': [0, 0.00927],
+    'halo': [0, 1.7225],
+    'recon': [-0.1724, 0.356],
+    'camels_z0': [-0.518061, 0.540111],
+    'camels_z127': [0, 0.026746],
+    'quijote_z0_32': [-0.0106, 0.0955],
+    'quijote_z0_64': [-0.0335, 0.1681],
+    'quijote_ic_32': [0.0000, 0.0033],
+    'quijote_ic_64': [0.0000, 0.0057],
+    'lc_z0_32': [0.9288, 0.1469],
+    'lc_z0_64': [0.8878, 0.2294],
+    'lc_z0_128': [0.8282, 0.2984],
+    'lc_ic_32': [0.0000, 0.0029],
+    'lc_ic_64': [0.0000, 0.0055],
+    'lc_ic_128': [0.0000, 0.0091],
+}
