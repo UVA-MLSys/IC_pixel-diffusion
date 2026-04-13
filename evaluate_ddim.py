@@ -42,8 +42,8 @@ parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
 
-parser.add_argument('--root', type=str, default='../Datasets')
-parser.add_argument('--model_folder', type=str, default='./run/standard_128')
+parser.add_argument('--root', type=str, default='Dataset')
+parser.add_argument('--model_folder', type=str, default='./run/cosmos_dm_1900_2')
 parser.add_argument('--boxsize', type=float, default=1000)
 parser.add_argument('--target_type', type=str, default='z127')
 parser.add_argument('--kmax', type=float, default=0.4)
@@ -64,8 +64,8 @@ val_suite = ValidationSuite(
 )
 
 for i, sample_no in tqdm(enumerate(range(args.start, args.end))):
-    sample_folder = os.path.join(model_folder, 'samples', str(sample_no))
-    samples_phys = np.load(os.path.join(sample_folder, 'sample.npy')).squeeze()[:10]
+    sample_folder = os.path.join(model_folder, 'samples_ddim', str(sample_no))
+    samples_phys = np.load(os.path.join(sample_folder, 'sample.npy')).squeeze()
     truth_phys = np.load(os.path.join(root, get_filepath(sample_no, args.target_type)))
 
     # if the model outputs normalized samples instead of physical magnitude
@@ -88,11 +88,11 @@ for i, sample_no in tqdm(enumerate(range(args.start, args.end))):
                         samples_global, truth_global)
     
     # Can check progress at any time
-    if (i + 1) % 2 == 0 and (sample_no+1) < args.end:
+    if (i + 1) % 10 == 0 and (sample_no+1) < args.end:
         current = val_suite._get_current_stats()
         print(f"After {i+1} examples: {current}")
 
 results = val_suite._finalize_stats()
 
 val_suite.print_summary(results)
-val_suite.save_results(results, os.path.join(model_folder, 'results2.json'))
+val_suite.save_results(results, os.path.join(model_folder, 'results_ddim.json'))

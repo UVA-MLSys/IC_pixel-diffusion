@@ -1,7 +1,7 @@
 {
     "training": {
-        "batch_size": 4,
-        "n_epochs": 400,
+        "batch_size": 16,
+        "n_epochs": 100,
         "likelihood_weighting": false,
         "reduce_mean": false,
         "sde": "vesde",
@@ -10,19 +10,18 @@
     "sampling": {
         "snr": 0.075,
         "correct_steps": 0,
-        "batch_size": 1,
+        "batch_size": 10,
         "num_samples": 10
     },
     "data": {
-        "path": "./Dataset/",
-        "image_size": 128,
-        "sample_size": 1900,
+        "path": "../Datasets/",
+        "image_size": 32,
+        "sample_size": 800,
         "num_input_channels": 2,
         "num_output_channels": 1,
         "noise_sigma": 0.1,
-        "cosmo_ids": [20, 40, 50, 70, 80, 90],
-        "input_type": "z0",
-        "target_type": "z127"
+        "input_type": "lc_z0_32",
+        "target_type": "lc_ic_32"
     },
     "model": {
         "sigma_max": 100,
@@ -33,13 +32,13 @@
         "sampling_eps": 1e-5,
         "T": 1.0,
         "workdir": "run/",
-        "cosmo_dir": "cosmos_dm_1900_2/",
+        "cosmo_dir": "lc_32/",
         "checkpoint_dir": "checkpoints/",
         "ema_rate": 0.999,
         "normalization": "GroupNorm",
         "nonlinearity": "swish",
         "nf": 32,
-        "ch_mult": [1,2, 2, 1, 1],
+        "ch_mult": [2, 1, 1],
         "num_res_blocks": 2,
         "resamp_with_conv": true,
         "conditional": true,

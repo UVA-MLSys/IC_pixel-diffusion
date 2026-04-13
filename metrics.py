@@ -11,6 +11,7 @@ import torch
 
 from torch import Tensor
 from typing import Optional, Sequence, Tuple
+from sklearn.metrics import r2_score
 
 def isotropic_binning(
     shape: Sequence[int],
@@ -108,6 +109,12 @@ class CosmologyMetrics:
         except:
             self.use_nbodykit = False
             print(f'Nbodykit is not available. Using Pylians')
+
+    def r2_score(self, field1, field2):
+        ps1, _ = self.power_spectrum(field1)
+        ps2, _ = self.power_spectrum(field2)
+
+        return r2_score(ps1, ps2)
             
     def _normalize_global(self, field: np.ndarray) -> np.ndarray:
         """
@@ -425,6 +432,18 @@ class ValidationMetrics:
             'std': float(np.nanstd(transfer_deviations)),
             'score': float(1.0 - np.clip(np.nanmean(transfer_deviations), 0, 1))
         }
+
+    def power_spectrum_r2(self, samples, truth):
+        scores = []
+        for sample in samples:
+            r2 = self.cosmo_metrics.r2_score(sample, truth)
+            scores.append(r2)
+
+        return {
+            'mean': float(np.nanmean(scores)),
+            'std': float(np.nanstd(scores)),
+            'score': float(np.nanmean(scores))
+        }
         
     def power_spectrum_rmse(
         self, samples: np.ndarray, truth: np.ndarray
@@ -536,7 +555,8 @@ class ValidationMetrics:
             'cross_correlation': self.cross_correlation_score(samples_physical, truth_physical),
             'transfer_function': self.transfer_function_accuracy(samples_physical, truth_physical),
             'vrmse': self.vrmse_score(samples_global_norm, truth_global_norm),
-            'power_spectrum_rmse': self.power_spectrum_rmse(samples_physical, truth_physical)
+            'power_spectrum_rmse': self.power_spectrum_rmse(samples_physical, truth_physical),
+            'r2_score': self.power_spectrum_r2(samples_global_norm, truth_global_norm)
         }
 
 
@@ -646,7 +666,7 @@ class ValidationSuite:
     def _get_current_stats(self) -> Dict[str, float]:
         """Get current statistics (for progress bar updates)."""
         stats = {}
-        for metric_name in ['cross_correlation', 'transfer_function', 'vrmse']:
+        for metric_name in ['cross_correlation', 'transfer_function', 'vrmse', 'r2_score']:
             if metric_name in self.running_stats:
                 stats[metric_name] = self.running_stats[metric_name]['mean']
         return stats

@@ -85,12 +85,88 @@ class VESDE():
     x = x_mean + diffusion[:, None, None, None, None] * np.sqrt(-dt) * z
     return x, x_mean
 
+class VESDE_DDIM(VESDE):
+    def __init__(self, sigma_min, sigma_max, N, T=1, eps=1e-5):
+        super().__init__(sigma_min, sigma_max, N, T, eps)
+
+    def get_ddim_schedule(self, num_inference_steps, method="quadratic"):
+        """
+        Generates time steps for the sampling process.
+        Adapts the logic from the Keras simulation_ddim function.
+        """
+        if method == "linear":
+            # Standard linear interpolation in time
+            t_steps = torch.linspace(self.T, self.eps, num_inference_steps)
+            
+        elif method == "quadratic":
+            # Quadratic interpolation in sqrt-time space
+            # This matches: np.linspace(0, np.sqrt(T), n) ** 2
+            # It concentrates steps near t=eps (where fine details form)
+            
+            # We interpolate linearly between sqrt(T) and sqrt(eps)
+            sqrt_T = np.sqrt(self.T)
+            sqrt_eps = np.sqrt(self.eps)
+            
+            # Create linear grid in sqrt space
+            lin_grid = torch.linspace(sqrt_T, sqrt_eps, num_inference_steps)
+            
+            # Square it back to get the quadratic time schedule
+            t_steps = lin_grid ** 2
+            
+        return t_steps
+
+    def ddim_step(self, x, t, t_prev, model_output, eta=0.0):
+        """
+        Deterministic DDIM update for Variance Exploding SDE.
+        
+        Args:
+            x: Current state x_t
+            t: Current time
+            t_prev: Next time step (closer to 0)
+            model_output: The raw output from the neural network
+            eta: 0.0 for deterministic (ODE), >0 for stochasticity
+        """
+        # 1. Get noise scales (sigmas) for current and next step
+        sigma_t = self.sigma_fn(t)[:, None, None, None, None]
+        sigma_prev = self.sigma_fn(t_prev)[:, None, None, None, None]
+        
+        # 2. Extract predicted noise (epsilon)
+        # In VE-SDE: Score = model_output / sigma_t
+        # And Score ~= -epsilon / sigma_t
+        # Therefore: model_output ~= -epsilon
+        # So: epsilon_pred = -model_output
+        eps_pred = -model_output
+
+        # 3. Predict x_0 (clean data)
+        # x_0 = x_t - sigma_t * epsilon
+        x_0_pred = x - sigma_t * eps_pred
+        
+        # 4. Compute DDIM Variance (usually 0 for deterministic sampling)
+        # This allows for interpolation between ODE (eta=0) and SDE (eta=1)
+        sigma_tau = eta * torch.sqrt(
+            (sigma_prev**2 / sigma_t**2) * (1 - (sigma_prev**2 / sigma_t**2)) # Simplified term for VE
+        )
+        # Note: For pure VE, strict DDIM sigma calculation is slightly different 
+        # but for eta=0 (which is the goal of DDIM), the noise term vanishes anyway.
+        
+        # 5. Compute the direction to x_{t_prev}
+        # Direction = sqrt(sigma_prev^2 - sigma_tau^2) * epsilon
+        dir_xt = torch.sqrt(sigma_prev**2 - sigma_tau**2) * eps_pred
+        
+        # 6. Random noise (if eta > 0)
+        noise = torch.randn_like(x) if eta > 0 else torch.zeros_like(x)
+        
+        # 7. Final Update
+        x_prev = x_0_pred + dir_xt + sigma_tau * noise
+        
+        return x_prev, x_0_pred
+
 
 def get_filepath(sample_no, file_type):
     if file_type == 'z0':
-        return f"Train_z0_2000/{sample_no}_z0.npy"
+        return f"Quijote_processed/Z0_128/{sample_no}_z0.npy"
     elif file_type == 'z127':
-        return f"Train_z127_from_IC_2000/df_m_z=127_sim{sample_no}.npy"
+        return f"Quijote_processed/IC_128/df_m_z=127_sim{sample_no}.npy"
     elif file_type == 'halo':
         return f"halo_LH_128/halo_lh_{sample_no:04d}.npy"
     elif file_type == 'recon':
@@ -135,6 +211,18 @@ def get_filepath(sample_no, file_type):
         return f'BSQ_Processed/Z0_64/{sample_no}.npy'
     elif file_type == 'bsq_z0_128':
         return f'BSQ_Processed/Z0_128/{sample_no}.npy'
+    elif file_type == 'eq_ic_32':
+        return f'latin_hypercube_EQ_processed/IC_32/{sample_no}.npy'
+    elif file_type == 'eq_ic_64':
+        return f'latin_hypercube_EQ_processed/IC_64/{sample_no}.npy'
+    elif file_type == 'eq_ic_128':
+        return f'latin_hypercube_EQ_processed/IC_128/{sample_no}.npy'
+    elif file_type == 'eq_z0_32':
+        return f'latin_hypercube_EQ_processed/Z0_32/{sample_no}.npy'
+    elif file_type == 'eq_z0_64':
+        return f'latin_hypercube_EQ_processed/Z0_64/{sample_no}.npy'
+    elif file_type == 'eq_z0_128':
+        return f'latin_hypercube_EQ_processed/Z0_128/{sample_no}.npy'
     else:
         raise ValueError(f"Unknown file type: {file_type}")
 
@@ -150,10 +238,26 @@ stats_dict = {
     'quijote_z0_64': [-0.0335, 0.1681],
     'quijote_ic_32': [0.0000, 0.0033],
     'quijote_ic_64': [0.0000, 0.0057],
-    'lc_z0_32': [0.9288, 0.1469],
-    'lc_z0_64': [0.8878, 0.2294],
-    'lc_z0_128': [0.8282, 0.2984],
+    'lc_z0_32': [-0.0093, 0.0895],
+    'lc_z0_64': [-0.0334, 0.1683],
+    'lc_z0_128': [-0.0891, 0.2674],
     'lc_ic_32': [0.0000, 0.0029],
     'lc_ic_64': [0.0000, 0.0055],
     'lc_ic_128': [0.0000, 0.0091],
+
+    # bsq dataset
+    'bsq_z0_32': [-0.0108, 0.0963],
+    'bsq_z0_64': [-0.0338, 0.1688],
+    'bsq_z0_128': [-0.0854, 0.2621],
+    'bsq_ic_32': [0.0000, 0.0033],
+    'bsq_ic_64': [0.0000, 0.0057],
+    'bsq_ic_128': [-0.0000, 0.0092],
+
+    # eq dataset
+    'eq_z0_32': [0.9287, 0.1465],
+    'eq_z0_64': [0.8908, 0.2239],
+    'eq_z0_128': [0.8352, 0.2910],
+    'eq_ic_32': [0.0000, 0.0033],
+    'eq_ic_64': [0.0000, 0.0057],
+    'eq_ic_128': [0.0000, 0.0093]
 }
