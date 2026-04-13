@@ -1,6 +1,6 @@
 #!/bin/bash
-#SBATCH --job-name=sample_ddpm_lc_128
-#SBATCH --account=nssac_students
+#SBATCH --job-name=sample_ddpm_standard_128
+#SBATCH --account=bii_dsc_community
 #SBATCH --partition=gpu
 #---SBATCH --gres=gpu:a100:1
 #SBATCH --gres=gpu:1
@@ -8,8 +8,8 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=80G
-#SBATCH --time=8:00:00
-#SBATCH --output=logs/sample_ddpm_lc_128_%j.out
+#SBATCH --time=3:00:00
+#SBATCH --output=logs/sample_ddpm_standard_128_%j.out
 
 source /etc/profile.d/modules.sh
 source ~/.bashrc
@@ -26,7 +26,9 @@ conda activate astroclip
 # # 7 hours
 # python batch_sample.py --config ./configs/standard_64.json --disable_tqdm
 
-python batch_sample.py --config ./configs/lc_128.json --start 900 --end 1000 --disable_tqdm
+python batch_sample_ddim.py --config ./configs/standard_128.json --disable_tqdm
+
+# python batch_sample.py --config ./configs/lc_128.json --start 900 --end 1000 --disable_tqdm
 # python batch_sample.py --config ./configs/lc_32.json --start 900 --end 1000 --disable_tqdm
 # python batch_sample.py --config ./configs/lc_64.json --start 900 --end 1000 --disable_tqdm
 

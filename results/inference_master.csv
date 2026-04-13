@@ -1,0 +1,7 @@
+timestamp,model_folder,model_name,resolution,world_size,gpu_name,eval_batch_size,num_simulations,num_samples_per_sim,total_samples_generated,total_time_s,total_generate_time_s,io_overhead_time_s,generate_time_percent,peak_memory_gb,sec_per_sample
+2026-04-13T12:44:31.184645,run/standard_64/,Diffusion (DDIM),64,1,NVIDIA A100-SXM4-80GB,10,2,10,20,45.3517,45.1519,0.1997,99.56,6.7517,2.2676
+2026-04-13T12:45:20.136860,run/standard_32/,Diffusion (DDIM),32,1,NVIDIA A100-SXM4-80GB,10,2,10,20,5.7561,5.7212,0.035,99.39,0.751,0.2878
+2026-04-13T12:46:30.113810,run/standard_32/,Diffusion (SDE),32,1,NVIDIA A100-SXM4-80GB,10,2,10,20,54.5727,54.52,0.0526,99.9,0.7498,2.7286
+2026-04-13T12:54:09.648297,run/standard_64/,Diffusion (SDE),64,1,NVIDIA A100-SXM4-80GB,10,2,10,20,433.2992,433.1983,0.1009,99.98,6.7419,21.665
+2026-04-13T12:59:58.144149,run/standard_128/,Diffusion (DDIM),0,1,NVIDIA A100-SXM4-80GB,10,2,10,20,233.1616,232.8411,0.3205,99.86,38.1175,11.6581
+2026-04-13T13:52:16.924565,run/standard_128/,Diffusion (SDE),0,1,NVIDIA A100-SXM4-80GB,10,2,10,20,2280.4604,2280.0848,0.3757,99.98,35.5394,114.023

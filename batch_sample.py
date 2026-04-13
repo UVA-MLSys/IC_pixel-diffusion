@@ -1,6 +1,9 @@
 # %%
 import os, sys
 import numpy as np
+import csv
+import time
+import datetime
 from utils import get_config
 import numpy as np
 import torch
@@ -46,6 +49,10 @@ def get_parser():
         '--disable_tqdm', action='store_true', 
         help='whether to enable tqdm progress bar'
     )
+    parser.add_argument(
+        '--benchmark', action='store_true',
+        help='Enable benchmarking'
+    )
     
     return parser
 
@@ -55,6 +62,34 @@ args = parser.parse_args()
 # %%
 config =get_config(args.config)
 DEVICE = torch.device('cuda:0') if torch.cuda.is_available() else torch.device('cpu')
+
+# Define variables for benchmark snippets
+eval_batch_size = config.sampling.batch_size
+n_samples = config.sampling.num_samples # This is num_samples per simulation
+
+if args.benchmark:
+    logging.info("Benchmarking enabled.")
+    world_size = 1 # sample.py is single-GPU
+    model_folder_bench = join(config.model.workdir, config.model.cosmo_dir)
+    benchmark_file = os.path.join(model_folder_bench, f"inference_benchmark_{world_size}_sde.csv")
+    logging.info(f"Benchmark results will be saved to: {benchmark_file}")
+    fieldnames = [
+        "eval_batch_size",
+        "num_simulations",
+        "num_samples_per_sim",
+        "total_samples_generated",
+        "total_time_s",
+        "total_generate_time_s",
+        "io_overhead_time_s",
+        "generate_time_percent",
+        "peak_memory_gb",
+        "sec_per_sample",
+    ]
+    with open(benchmark_file, "w", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+
+total_generate_time = 0.0
 
 model_folder = join(config.model.workdir, config.model.cosmo_dir)
 checkpoint_dir = join(model_folder, config.model.checkpoint_dir)
@@ -91,6 +126,11 @@ else:
     print(f"No checkpoint found at {checkpoint_path}. Starting from scratch.")
 
 model.eval()
+
+# --- Start benchmark timer and reset memory stats ---
+if torch.cuda.is_available() and args.benchmark:
+    torch.cuda.reset_peak_memory_stats('cuda:0')
+start_time = time.time()
 
 # %%
 
@@ -146,6 +186,10 @@ for sample_no in range(args.start, args.end):
         range(config.sampling.num_samples//config.sampling.batch_size),
         disable=args.disable_tqdm
     ):
+        # --- Time the generation step specifically ---
+        if args.benchmark:
+            generate_start_time = time.time()
+
         with torch.no_grad(), ema.average_parameters():
             x = sde.prior_sampling(shape).to(DEVICE)
             timesteps = sde.timesteps.to(DEVICE)
@@ -156,7 +200,94 @@ for sample_no in range(args.start, args.end):
 
             samples.append(x_mean.detach().cpu().numpy())
 
+        if args.benchmark:
+            generate_end_time = time.time()
+            total_generate_time += (generate_end_time - generate_start_time)
+
         np.save(os.path.join(output_dir, 'sample.npy'), np.array(samples))
 
     samples = np.array(samples).reshape(-1, Nside, Nside, Nside)
     np.save(os.path.join(output_dir, 'sample.npy'), samples)
+
+# --- End benchmark and log results ---
+total_time = time.time() - start_time
+
+if args.benchmark:
+    peak_memory_gb = 0.0
+    if torch.cuda.is_available():
+        peak_memory_gb = torch.cuda.max_memory_allocated(DEVICE) / (1024**3)
+
+    num_simulations = args.end - args.start
+    total_generated_samples = num_simulations * n_samples
+    sec_per_sample = total_time / total_generated_samples if total_generated_samples > 0 else 0.0
+
+    io_overhead_time = total_time - total_generate_time
+    generate_time_percent = (total_generate_time / total_time) * 100 if total_time > 0 else 0.0
+
+    logging.info("--- Inference Benchmark Results ---")
+    logging.info(f"Total input simulations: {num_simulations}")
+    logging.info(f"Samples per simulation: {n_samples}")
+    logging.info(f"Total samples generated: {total_generated_samples}")
+    logging.info(f"Total time: {total_time:.2f}s")
+    logging.info(f"  - Total generate time: {total_generate_time:.2f}s ({generate_time_percent:.1f}%)")
+    logging.info(f"  - I/O & overhead time: {io_overhead_time:.2f}s")
+    logging.info(f"Peak memory: {peak_memory_gb:.2f} GB")
+    logging.info(f"Time per sample: {sec_per_sample:.2f} s")
+
+    with open(benchmark_file, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writerow({
+            "eval_batch_size": eval_batch_size,
+            "num_simulations": num_simulations,
+            "num_samples_per_sim": n_samples,
+            "total_samples_generated": total_generated_samples,
+            "total_time_s": round(total_time, 4),
+            "total_generate_time_s": round(total_generate_time, 4),
+            "io_overhead_time_s": round(io_overhead_time, 4),
+            "generate_time_percent": round(generate_time_percent, 2),
+            "peak_memory_gb": round(peak_memory_gb, 4),
+            "sec_per_sample": round(sec_per_sample, 4),
+        })
+
+    # --- Append to common benchmark file ---
+    def get_original_cwd():
+        return os.getcwd()
+
+    common_benchmark_file = os.path.join(get_original_cwd(), "results", "inference_master.csv")
+    os.makedirs(os.path.dirname(common_benchmark_file), exist_ok=True)
+    
+    common_fieldnames = [
+        "timestamp", "model_folder", "model_name", "resolution",
+        "world_size", "gpu_name", "eval_batch_size",
+        "num_simulations", "num_samples_per_sim", "total_samples_generated",
+        "total_time_s", "total_generate_time_s", "io_overhead_time_s", "generate_time_percent",
+        "peak_memory_gb", "sec_per_sample",
+    ]
+
+    model_name = "Diffusion (SDE)"
+    
+    resolution = 0
+    for res_val in ["32", "64", "128", "256", "512", "1024"]:
+        if res_val in config.data.target_type:
+            resolution = int(res_val)
+            break
+
+    gpu_name = torch.cuda.get_device_name(DEVICE) if torch.cuda.is_available() else "CPU"
+
+    common_data = {
+        "timestamp": datetime.datetime.now().isoformat(),
+        "model_folder": model_folder, "model_name": model_name, "resolution": resolution,
+        "world_size": 1, "gpu_name": gpu_name, "eval_batch_size": eval_batch_size,
+        "num_simulations": num_simulations, "num_samples_per_sim": n_samples,
+        "total_samples_generated": total_generated_samples, "total_time_s": round(total_time, 4),
+        "total_generate_time_s": round(total_generate_time, 4), "io_overhead_time_s": round(io_overhead_time, 4),
+        "generate_time_percent": round(generate_time_percent, 2), "peak_memory_gb": round(peak_memory_gb, 4),
+        "sec_per_sample": round(sec_per_sample, 4),
+    }
+
+    file_exists = os.path.isfile(common_benchmark_file)
+    with open(common_benchmark_file, "a", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=common_fieldnames, extrasaction='ignore')
+        if not file_exists:
+            writer.writeheader()
+        writer.writerow(common_data)
